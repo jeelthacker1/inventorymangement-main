@@ -803,6 +803,7 @@ class DatabaseManager:
     
     def get_repair(self, repair_id):
         """Get a repair job by ID with customer details"""
+        print(f"DB: Getting repair data for repair_id: {repair_id}")
         self.connect()
         
         self.cursor.execute('''
@@ -820,13 +821,16 @@ class DatabaseManager:
             repair_dict['device'] = repair_dict['product_description']
             repair_dict['issue'] = repair_dict['issue_description']
             self.close()
+            print(f"DB: Repair data found: {repair_dict}")
             return repair_dict
         
+        print(f"DB: No repair data found for repair_id: {repair_id}")
         self.close()
         return None
     
     def get_repair_parts(self, repair_id):
         """Get all parts for a specific repair job"""
+        print(f"DB: Getting repair parts for repair_id: {repair_id}")
         self.connect()
         
         self.cursor.execute('''
@@ -844,6 +848,14 @@ class DatabaseManager:
             # Also add 'cost' field if it's needed but not present
             if 'cost' not in part and 'unit_price' in part:
                 part['cost'] = part['unit_price']
+        
+        print(f"DB: Found {len(parts)} repair parts for repair_id: {repair_id}")
+        if parts:
+            print(f"DB: First part: {parts[0]}")
+        else:
+            print(f"DB: No parts found for repair_id: {repair_id}")
+            # Return empty list instead of None to avoid errors in invoice generation
+            parts = []
         
         self.close()
         return parts

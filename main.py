@@ -209,10 +209,27 @@ class InventoryManagementSystem(QMainWindow):
             self.show_login_screen()
             return
             
+        # Add debugging logs
+        print(f"Showing repair invoice for repair_id: {repair_id}")
+        
+        # Check if repair exists
+        repair_data = self.db_manager.get_repair(repair_id)
+        if not repair_data:
+            print(f"Error: Repair data not found for repair_id: {repair_id}")
+            QMessageBox.critical(self, "Error", "Repair data not found. Cannot generate invoice.")
+            return
+        
+        print(f"Repair data found: {repair_data}")
+        
+        # Check if repair has parts
+        repair_parts = self.db_manager.get_repair_parts(repair_id)
+        print(f"Repair parts found: {len(repair_parts)} parts")
+        
         # Create a new RepairInvoiceScreen instance
         from screens.invoice import RepairInvoiceScreen
         repair_invoice = RepairInvoiceScreen(self, repair_id)
         repair_invoice.show()
+        print(f"RepairInvoiceScreen created and shown for repair_id: {repair_id}")
     
     def show_qr_scanner(self, callback=None):
         if QR_SCANNER_AVAILABLE:
