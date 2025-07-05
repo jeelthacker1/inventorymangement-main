@@ -1194,120 +1194,189 @@ class InvoiceScreen(QWidget):
             self.print_html_to_printer(html, printer)
     
     def save_as_pdf(self):
+        print("Starting PDF generation process...")
         # Generate HTML invoice
         html = self.generate_html_invoice()
         
-        # Ask for save location
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Invoice as PDF",
-            f"{self.invoice_number}.pdf",
-            "PDF Files (*.pdf)"
-        )
-        
-        if not file_path:
-            return
-        
-        # Set up the PDF writer
-        printer = QPrinter(QPrinter.HighResolution)
-        printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setOutputFileName(file_path)
-        printer.setPageSize(QPrinter.A4)
-        printer.setPageMargins(15, 15, 15, 15, QPrinter.Millimeter)
-        
-        # Print to PDF
-        self.print_html_to_printer(html, printer)
-        
-        QMessageBox.information(self, "PDF Saved", f"Invoice has been saved as PDF to:\n{file_path}")
+        try:
+            # Create default directory if it doesn't exist
+            invoice_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "invoice")
+            print(f"Invoice directory path: {invoice_dir}")
+            
+            if not os.path.exists(invoice_dir):
+                print(f"Creating invoice directory: {invoice_dir}")
+                try:
+                    os.makedirs(invoice_dir)
+                    print(f"Successfully created invoice directory: {invoice_dir}")
+                except Exception as dir_error:
+                    print(f"Error creating invoice directory: {str(dir_error)}")
+                    # If we can't create the directory, use the desktop as fallback
+                    invoice_dir = os.path.join(os.path.expanduser('~'), 'Desktop')
+                    print(f"Using fallback directory: {invoice_dir}")
+            
+            # Default file path
+            default_path = os.path.join(invoice_dir, f"{self.invoice_number}.pdf")
+            print(f"Default save path: {default_path}")
+            
+            # Ask for save location
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Invoice as PDF",
+                default_path,
+                "PDF Files (*.pdf)"
+            )
+            
+            if not file_path:
+                print("User cancelled the save dialog")
+                return
+            
+            print(f"Selected save path: {file_path}")
+            
+            # Ensure the file has .pdf extension
+            if not file_path.lower().endswith('.pdf'):
+                file_path += '.pdf'
+                print(f"Added .pdf extension: {file_path}")
+            
+            # Set up the PDF writer
+            printer = QPrinter(QPrinter.HighResolution)
+            printer.setOutputFormat(QPrinter.PdfFormat)
+            printer.setOutputFileName(file_path)
+            printer.setPageSize(QPrinter.A4)
+            printer.setPageMargins(15, 15, 15, 15, QPrinter.Millimeter)
+            
+            print("Printing HTML to PDF...")
+            # Print to PDF
+            result = self.print_html_to_printer(html, printer)
+            
+            if not result:
+                print("PDF generation failed in print_html_to_printer method")
+                QMessageBox.warning(self, "PDF Generation Failed", "Failed to create the PDF file. Please try again.")
+                return
+            
+            # Verify the file was created
+            if os.path.exists(file_path):
+                file_size = os.path.getsize(file_path)
+                print(f"PDF file created successfully: {file_path} (Size: {file_size} bytes)")
+                
+                QMessageBox.information(self, "PDF Saved", f"Invoice has been saved as PDF to:\n{file_path}")
+                
+                # Ask if user wants to open the PDF
+                reply = QMessageBox.question(self, "Open PDF", "Do you want to open the PDF now?",
+                                           QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+                if reply == QMessageBox.Yes:
+                    print(f"Opening PDF file: {file_path}")
+                    # Open the PDF with the default application
+                    import subprocess
+                    if os.name == 'nt':  # Windows
+                        os.startfile(file_path)
+                    elif os.name == 'posix':  # macOS or Linux
+                        subprocess.call(('xdg-open', file_path))
+            else:
+                print(f"PDF file not found after generation: {file_path}")
+                QMessageBox.warning(self, "PDF Generation Failed", "Failed to create the PDF file. Please try again.")
+        except Exception as e:
+            print(f"PDF generation error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(self, "Error", f"An error occurred while saving the PDF:\n{str(e)}")
+            print(f"PDF generation error: {str(e)}")
     
     def print_html_to_printer(self, html, printer):
-        # Create a document to render the HTML
-        document = QTextDocument()
-        
-        # Set a much larger default font before setting HTML
-        font = QFont("Arial", 16)  # Use Arial font with 16pt size (larger)
-        document.setDefaultFont(font)
-        
-        # Modify HTML to ensure much larger font sizes
-        html_with_styles = f"""
-        <html>
-        <head>
-        <style>
-        body {{ 
-            font-family: Arial, sans-serif; 
-            font-size: 16pt; 
-            margin: 30px; 
-            line-height: 1.4;
-        }}
-        h1 {{ 
-            font-size: 24pt; 
-            font-weight: bold; 
-            margin-bottom: 15px; 
-            text-align: center;
-        }}
-        h2 {{ 
-            font-size: 20pt; 
-            font-weight: bold; 
-            margin-bottom: 12px; 
-        }}
-        h3 {{ 
-            font-size: 18pt; 
-            font-weight: bold; 
-            margin-bottom: 10px; 
-        }}
-        table {{ 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 15px 0; 
-        }}
-        th, td {{ 
-            padding: 12px; 
-            border: 2px solid #000; 
-            font-size: 14pt; 
-            text-align: left;
-        }}
-        th {{ 
-            background-color: #f0f0f0; 
-            font-weight: bold; 
-            font-size: 15pt;
-        }}
-        .header {{ 
-            font-size: 18pt; 
-            margin-bottom: 20px; 
-            font-weight: bold;
-        }}
-        .total {{ 
-            font-weight: bold; 
-            font-size: 16pt; 
-            background-color: #f9f9f9;
-        }}
-        .company-info {{ 
-            font-size: 14pt; 
-            margin-bottom: 20px;
-        }}
-        .invoice-details {{ 
-            font-size: 14pt; 
-            margin: 15px 0;
-        }}
-        </style>
-        </head>
-        <body>
-        {html}
-        </body>
-        </html>
-        """
-        
-        document.setHtml(html_with_styles)
-        
-        # Set the document size to match the printer page size with proper margins
-        page_size = printer.pageRect().size()
-        # Use 85% of page size to ensure proper margins and prevent cutoff
-        doc_width = page_size.width() * 0.85
-        doc_height = page_size.height() * 0.85
-        document.setPageSize(QSizeF(doc_width, doc_height))
-        
-        # Print the document
-        document.print_(printer)
+        try:
+            # Create a document to render the HTML
+            document = QTextDocument()
+            
+            # Set a much larger default font before setting HTML
+            font = QFont("Arial", 16)  # Use Arial font with 16pt size (larger)
+            document.setDefaultFont(font)
+            
+            # Modify HTML to ensure much larger font sizes
+            html_with_styles = f"""
+            <html>
+            <head>
+            <style>
+            body {{ 
+                font-family: Arial, sans-serif; 
+                font-size: 16pt; 
+                margin: 30px; 
+                line-height: 1.4;
+            }}
+            h1 {{ 
+                font-size: 24pt; 
+                font-weight: bold; 
+                margin-bottom: 15px; 
+                text-align: center;
+            }}
+            h2 {{ 
+                font-size: 20pt; 
+                font-weight: bold; 
+                margin-bottom: 12px; 
+            }}
+            h3 {{ 
+                font-size: 18pt; 
+                font-weight: bold; 
+                margin-bottom: 10px; 
+            }}
+            table {{ 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin: 15px 0; 
+            }}
+            th, td {{ 
+                padding: 12px; 
+                border: 2px solid #000; 
+                font-size: 14pt; 
+                text-align: left;
+            }}
+            th {{ 
+                background-color: #f0f0f0; 
+                font-weight: bold; 
+                font-size: 15pt;
+            }}
+            .header {{ 
+                font-size: 18pt; 
+                margin-bottom: 20px; 
+                font-weight: bold;
+            }}
+            .total {{ 
+                font-weight: bold; 
+                font-size: 16pt; 
+                background-color: #f9f9f9;
+            }}
+            .company-info {{ 
+                font-size: 14pt; 
+                margin-bottom: 20px;
+            }}
+            .invoice-details {{ 
+                font-size: 14pt; 
+                margin: 15px 0;
+            }}
+            </style>
+            </head>
+            <body>
+            {html}
+            </body>
+            </html>
+            """
+            
+            document.setHtml(html_with_styles)
+            
+            # Set the document size to match the printer page size with proper margins
+            page_size = printer.pageRect().size()
+            # Use 85% of page size to ensure proper margins and prevent cutoff
+            doc_width = page_size.width() * 0.85
+            doc_height = page_size.height() * 0.85
+            document.setPageSize(QSizeF(doc_width, doc_height))
+            
+            # Print the document
+            document.print_(printer)
+            
+            print("Document successfully printed to printer/PDF")
+            return True
+        except Exception as e:
+            print(f"Error printing HTML to printer: {str(e)}")
+            QMessageBox.critical(self, "Printing Error", f"An error occurred while generating the document:\n{str(e)}")
+            return False
 
 class RepairInvoiceScreen(InvoiceScreen):
     def __init__(self, main_window, repair_id):

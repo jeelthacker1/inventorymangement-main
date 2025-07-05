@@ -448,6 +448,15 @@ class RepairDialog(QDialog):
         
         # Customer section
         customer_group = QGroupBox("Customer Information")
+        
+        # Set default style for customer search
+        self.default_search_style = """
+            QLineEdit {
+                border: 1px solid #bdc3c7;
+                border-radius: 4px;
+                padding: 5px;
+            }
+        """
         customer_layout = QFormLayout(customer_group)
         customer_layout.setVerticalSpacing(10)
         
@@ -458,6 +467,8 @@ class RepairDialog(QDialog):
         
         self.customer_search_input = QLineEdit()
         self.customer_search_input.setPlaceholderText("Search by name or phone...")
+        self.customer_search_input.setToolTip("Search for a customer by name or phone number")
+        self.customer_search_input.setStyleSheet(self.default_search_style)
         
         # Set up completer for customer search
         self.customer_completer_model = QStandardItemModel()
@@ -469,6 +480,8 @@ class RepairDialog(QDialog):
         
         self.customer_search_input.textChanged.connect(self.search_customers)
         self.customer_completer.activated.connect(self.select_customer_from_completer)
+        # Add a signal to handle when the user selects an item from the completer popup
+        self.customer_search_input.returnPressed.connect(self.check_customer_selection)
         
         new_customer_btn = QPushButton("New Customer")
         new_customer_btn.setStyleSheet("""
@@ -635,14 +648,49 @@ class RepairDialog(QDialog):
             self.customer_completer_model.appendRow(item)
     
     def search_customers(self):
+        # Reset customer selection visual indicators
+        self.reset_customer_selection_indicators()
+        
         # Get search text
-        search_text = self.customer_search_input.text().strip().lower()
+        search_text = self.customer_search_input.text().strip()
+        original_search_text = search_text
+        search_text = search_text.lower()
         
         if not search_text or len(search_text) < 3:
             return
         
-        # Search customers in database
-        customers = self.main_window.db_manager.search_customers(search_text)
+        print(f"Searching for customers with text: '{search_text}'")
+        
+        # Check if the search text is in the format "name - phone"
+        if " - " in search_text:
+            # This might be a display text that was previously shown
+            # Try to parse it and search for both parts separately
+            parts = search_text.split(" - ")
+            if len(parts) == 2:
+                name_part = parts[0].strip()
+                phone_part = parts[1].strip()
+                
+                print(f"Detected formatted search: name='{name_part}', phone='{phone_part}'")
+                
+                # First try to search by phone which is more unique
+                phone_customers = self.main_window.db_manager.search_customers(phone_part)
+                if phone_customers:
+                    print(f"Found {len(phone_customers)} customers by phone part")
+                    # Use these results
+                    customers = phone_customers
+                else:
+                    # Try by name
+                    name_customers = self.main_window.db_manager.search_customers(name_part)
+                    print(f"Found {len(name_customers)} customers by name part")
+                    customers = name_customers
+            else:
+                # Normal search
+                customers = self.main_window.db_manager.search_customers(search_text)
+        else:
+            # Normal search
+            customers = self.main_window.db_manager.search_customers(search_text)
+            
+        print(f"Found {len(customers)} matching customers")
         
         # Clear current model
         self.customer_completer_model.clear()
@@ -653,6 +701,29 @@ class RepairDialog(QDialog):
             item = QStandardItem(display_text)
             item.setData(customer['id'], Qt.UserRole)  # Store customer ID as user data
             self.customer_completer_model.appendRow(item)
+            print(f"Added to completer: {display_text} (ID: {customer['id']})")
+        
+        # Check if the current text exactly matches a customer in the model
+        current_text = original_search_text
+        
+        # First try exact match
+        for i in range(self.customer_completer_model.rowCount()):
+            item = self.customer_completer_model.item(i)
+            if item.text() == current_text:
+                customer_id = item.data(Qt.UserRole)
+                print(f"Exact match found in search: {item.text()} (ID: {customer_id})")
+                self.load_customer(customer_id)
+                return
+        
+        # If no exact match, try partial match
+        if len(customers) > 0:
+            # If we have only one result, select it automatically
+            if len(customers) == 1:
+                self.load_customer(customers[0]['id'])
+                display_text = f"{customers[0]['name']} - {customers[0]['phone']}"
+                self.customer_search_input.setText(display_text)
+                print(f"Auto-selected single result: {display_text} (ID: {customers[0]['id']})")
+                return
     
     def select_customer_from_completer(self, text):
         # Find the selected customer in the model
@@ -660,23 +731,175 @@ class RepairDialog(QDialog):
             item = self.customer_completer_model.item(i)
             if item.text() == text:
                 customer_id = item.data(Qt.UserRole)
+                print(f"Customer selected from completer dropdown: {text} (ID: {customer_id})")
                 self.load_customer(customer_id)
-                break
+                # Set the text in the search input to match the selected customer
+                self.customer_search_input.setText(text)
+                return  # Return after finding a match
+        
+        # If we get here, no exact match was found
+        print(f"Warning: No exact match found for '{text}' in completer model")
+        
+        # Try a partial match
+        for i in range(self.customer_completer_model.rowCount()):
+            item = self.customer_completer_model.item(i)
+            if text.lower() in item.text().lower():
+                customer_id = item.data(Qt.UserRole)
+                print(f"Partial match found: {item.text()} (ID: {customer_id})")
+                self.load_customer(customer_id)
+                self.customer_search_input.setText(item.text())
+                return
+    
+    def check_customer_selection(self):
+        # Check if the current text in the search input matches any customer in the completer model
+        current_text = self.customer_search_input.text().strip()
+        
+        # If the text is too short, don't try to match
+        if len(current_text) < 3:
+            return
+        
+        print(f"Checking customer selection for text: '{current_text}'")
+        
+        # First, check if the text is in the format "ID - Phone" or "Name - Phone"
+        if " - " in current_text:
+            parts = current_text.split(" - ")
+            if len(parts) == 2:
+                name_or_id_part = parts[0].strip()
+                phone_part = parts[1].strip()
+                
+                print(f"Detected formatted input: part1='{name_or_id_part}', part2='{phone_part}'")
+                
+                # Try to find by ID if the first part is numeric
+                if name_or_id_part.isdigit():
+                    # This might be a customer ID
+                    customer_id = int(name_or_id_part)
+                    customer = self.main_window.db_manager.get_customer(customer_id)
+                    if customer:
+                        print(f"Found customer by ID: {customer['name']} (ID: {customer_id})")
+                        self.load_customer(customer_id)
+                        display_text = f"{customer['name']} - {customer['phone']}"
+                        self.customer_search_input.setText(display_text)
+                        return
+                
+                # Try to find by phone
+                phone_customers = self.main_window.db_manager.search_customers(phone_part)
+                if phone_customers:
+                    # Check if any of these customers also match the name part
+                    for customer in phone_customers:
+                        if name_or_id_part.lower() in customer['name'].lower():
+                            print(f"Found customer by name and phone: {customer['name']} (ID: {customer['id']})")
+                            self.load_customer(customer['id'])
+                            display_text = f"{customer['name']} - {customer['phone']}"
+                            self.customer_search_input.setText(display_text)
+                            return
+                    
+                    # If we didn't find a match with both parts, just use the first phone match
+                    print(f"Found customer by phone only: {phone_customers[0]['name']} (ID: {phone_customers[0]['id']})")
+                    self.load_customer(phone_customers[0]['id'])
+                    display_text = f"{phone_customers[0]['name']} - {phone_customers[0]['phone']}"
+                    self.customer_search_input.setText(display_text)
+                    return
+        
+        # If we get here, try the regular search approach
+        # Search for matching customers
+        customers = self.main_window.db_manager.search_customers(current_text.lower())
+        
+        # If we found any customers, try to find an exact match
+        for customer in customers:
+            display_text = f"{customer['name']} - {customer['phone']}"
+            if current_text.lower() == display_text.lower():
+                self.load_customer(customer['id'])
+                self.customer_search_input.setText(display_text)
+                print(f"Customer selected by exact match: {customer['name']} (ID: {customer['id']})")
+                return
+        
+        # Try partial match
+        for customer in customers:
+            display_text = f"{customer['name']} - {customer['phone']}"
+            if current_text.lower() in display_text.lower():
+                self.load_customer(customer['id'])
+                self.customer_search_input.setText(display_text)
+                print(f"Customer selected by partial match: {customer['name']} (ID: {customer['id']})")
+                return
+                
+        # If we get here, no match was found in the search results
+        # Try to match with any item in the completer model
+        for i in range(self.customer_completer_model.rowCount()):
+            item = self.customer_completer_model.item(i)
+            if current_text.lower() == item.text().lower():
+                customer_id = item.data(Qt.UserRole)
+                self.load_customer(customer_id)
+                self.customer_search_input.setText(item.text())
+                print(f"Customer selected from completer (exact): ID {customer_id}")
+                return
+        
+        # Try partial match in completer
+        for i in range(self.customer_completer_model.rowCount()):
+            item = self.customer_completer_model.item(i)
+            if current_text.lower() in item.text().lower():
+                customer_id = item.data(Qt.UserRole)
+                self.load_customer(customer_id)
+                self.customer_search_input.setText(item.text())
+                print(f"Customer selected from completer (partial): ID {customer_id}")
+                return
+                
+        # If we still haven't found a match, try one more time with the exact text
+        if len(current_text) > 0:
+            exact_customers = self.main_window.db_manager.search_customers(current_text.lower())
+            if len(exact_customers) == 1:
+                self.load_customer(exact_customers[0]['id'])
+                display_text = f"{exact_customers[0]['name']} - {exact_customers[0]['phone']}"
+                self.customer_search_input.setText(display_text)
+                print(f"Customer selected by exact search: {exact_customers[0]['name']} (ID: {exact_customers[0]['id']})")
+                return
+        
+        print(f"No customer match found for: '{current_text}'")
+
     
     def load_customer(self, customer_id):
         # Get customer from database
         customer = self.main_window.db_manager.get_customer(customer_id)
         
         if not customer:
+            print(f"Warning: Customer with ID {customer_id} not found in database")
             return
         
         # Store customer ID
         self.customer_id = customer_id
+        print(f"Customer loaded: {customer['name']} (ID: {customer_id})")
         
         # Update customer details display
         self.customer_name_label.setText(customer['name'])
         self.customer_phone_label.setText(customer['phone'])
         self.customer_email_label.setText(customer['email'] or 'N/A')
+        
+        # Highlight the customer section to indicate selection
+        self.customer_name_label.setStyleSheet("font-weight: bold; color: #2980b9;")
+        self.customer_phone_label.setStyleSheet("color: #2980b9;")
+        self.customer_email_label.setStyleSheet("color: #2980b9;")
+        
+        # Add visual indicator to search field to show customer is selected
+        self.customer_search_input.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #27ae60;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: #eafaf1;
+            }
+        """)
+        
+        # Add a tooltip to indicate customer is selected
+        self.customer_search_input.setToolTip(f"Selected customer: {customer['name']} (ID: {customer_id})")
+    
+    def reset_customer_selection_indicators(self):
+        # Reset the customer search field style to default
+        self.customer_search_input.setStyleSheet(self.default_search_style)
+        self.customer_search_input.setToolTip("Search for a customer by name or phone number")
+        
+        # Reset customer labels style
+        self.customer_name_label.setStyleSheet("")
+        self.customer_phone_label.setStyleSheet("")
+        self.customer_email_label.setStyleSheet("")
     
     def show_new_customer_dialog(self):
         from screens.sales import CustomerDialog  # Import here to avoid circular imports
@@ -791,17 +1014,24 @@ class RepairDialog(QDialog):
     
     def accept(self):
         # Validate inputs
+        print(f"Validating repair form. Customer ID: {self.customer_id}")
+        
         if not self.customer_id:
-            QMessageBox.warning(self, "Validation Error", "Please select a customer.")
+            print("Validation failed: No customer selected")
+            QMessageBox.warning(self, "Validation Error", "Please select a customer.\n\nMake sure to click on a customer from the search results or press Enter after typing a customer name.")
             return
         
         if not self.device_input.text().strip():
+            print("Validation failed: No device information")
             QMessageBox.warning(self, "Validation Error", "Device information is required.")
             return
         
         if not self.issue_input.toPlainText().strip():
+            print("Validation failed: No issue description")
             QMessageBox.warning(self, "Validation Error", "Issue description is required.")
             return
+            
+        print("Validation successful. Proceeding with form submission.")
         
         # Collect repair data
         repair_data = {
