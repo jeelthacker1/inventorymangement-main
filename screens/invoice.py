@@ -441,8 +441,8 @@ class InvoiceScreen(QWidget):
         
         # Customer mobile
         customer_mobile = ""
-        if self.customer_data and self.customer_data['mobile']:
-            customer_mobile = self.customer_data['mobile']
+        if self.customer_data and self.customer_data.get('phone'):
+            customer_mobile = self.customer_data['phone']
         memo_right_mobile = QLabel(f"Mobile: {customer_mobile}")
         memo_right.addWidget(memo_right_mobile)
         
@@ -972,8 +972,8 @@ class InvoiceScreen(QWidget):
         
         # Customer mobile
         customer_mobile = ""
-        if self.customer_data and self.customer_data['mobile']:
-            customer_mobile = self.customer_data['mobile']
+        if self.customer_data and self.customer_data.get('phone'):
+            customer_mobile = self.customer_data['phone']
         memo_right_mobile = QLabel(f"Mobile: {customer_mobile}")
         memo_right.addWidget(memo_right_mobile)
         
@@ -2398,7 +2398,47 @@ class RepairInvoiceScreen(QWidget):
         count = self.main_window.db_manager.get_invoice_count_for_date(today.strftime('%Y-%m-%d'))
         
         # Format: INV-YYYYMMDD-XXX where XXX is a sequential number
-        return f"INV-{year}{month:02d}{day:02d}-{count+1:03d}"
+        
+    def load_repair_data(self):
+        # Fetch repair data from database
+        self.repair_data = self.main_window.db_manager.get_repair(self.repair_id)
+        
+        if not self.repair_data:
+            QMessageBox.critical(self, "Error", f"Repair with ID {self.repair_id} not found.")
+            self.go_back()
+            return
+            
+        # Get customer data
+        customer_id = self.repair_data.get('customer_id')
+        if customer_id:
+            self.customer_data = self.main_window.db_manager.get_customer_by_id(customer_id)
+        
+        # Get repair items (parts and labor)
+        repair_parts = self.main_window.db_manager.get_repair_parts(self.repair_id)
+        
+        # Add repair service as an item
+        service_charge = float(self.repair_data.get('service_charge', 0))
+        if service_charge > 0:
+            self.invoice_items.append({
+                'name': 'Repair Service',
+                'price': service_charge,
+                'quantity': 1,
+                'total': service_charge
+            })
+        
+        # Add parts as items
+        for part in repair_parts:
+            part_price = float(part.get('price', 0))
+            part_quantity = int(part.get('quantity', 1))
+            self.invoice_items.append({
+                'name': part.get('name', 'Part'),
+                'price': part_price,
+                'quantity': part_quantity,
+                'total': part_price * part_quantity
+            })
+            
+        # Update the invoice preview
+        self.update_invoice_preview()
         
     def go_back(self):
         # Check if user is admin or employee and return to the appropriate dashboard
@@ -2500,8 +2540,8 @@ class RepairInvoiceScreen(QWidget):
         
         # Customer mobile
         customer_mobile = ""
-        if self.customer_data and self.customer_data['mobile']:
-            customer_mobile = self.customer_data['mobile']
+        if self.customer_data and self.customer_data.get('phone'):
+            customer_mobile = self.customer_data['phone']
         memo_right_mobile = QLabel(f"Mobile: {customer_mobile}")
         memo_right.addWidget(memo_right_mobile)
         

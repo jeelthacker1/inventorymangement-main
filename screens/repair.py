@@ -1394,40 +1394,25 @@ class CompleteRepairDialog(QDialog):
     
     def complete_and_generate_invoice(self):
         # First complete the repair
-        print(f"Starting complete_and_generate_invoice for repair_id: {self.repair_id}")
-        
         completion_data = {
             'status': 'completed',
             'completion_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'service_charge': self.service_charge_input.value(),
             'payment_method': self.payment_method_combo.currentText(),
-            'payment_status': self.payment_status_combo.currentText().lower(),
+            'payment_status': self.payment_method_combo.currentText().lower(),
             'completion_notes': self.notes_input.toPlainText().strip()
         }
-        
-        print(f"Completion data: {completion_data}")
         
         success = self.main_window.db_manager.complete_repair(self.repair_id, completion_data)
         
         if not success:
-            print(f"Failed to complete repair job for repair_id: {self.repair_id}")
             QMessageBox.critical(self, "Error", "Failed to complete repair job. Please try again.")
             return
         
-        print(f"Repair job completed successfully for repair_id: {self.repair_id}")
-        
-        # Check if repair has parts before generating invoice
-        repair_parts = self.main_window.db_manager.get_repair_parts(self.repair_id)
-        print(f"Repair parts for invoice: {len(repair_parts)} parts found")
-        
-        if len(repair_parts) == 0 and self.service_charge_input.value() == 0:
-            print("Warning: No parts and no service charge for this repair")
-            QMessageBox.warning(self, "Invoice Warning", "This repair has no parts and no service charge. The invoice may be empty.")
-        
-        print(f"Calling show_repair_invoice with repair_id: {self.repair_id}")
-        
-        # Generate invoice
-        self.main_window.show_repair_invoice(self.repair_id)
-        
-        print("Accepting dialog after generating invoice")
-        self.accept()
+        # After completing the repair
+        if success:
+            # Always show the invoice regardless of parts/service charges
+            self.main_window.show_repair_invoice(self.repair_id)
+            self.main_window.raise_()  # Bring window to front
+            self.main_window.activateWindow()  # Focus the window
+            self.accept()

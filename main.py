@@ -14,6 +14,8 @@ from screens.sales import SalesScreen
 from screens.repair import RepairScreen
 from screens.analytics import AnalyticsScreen
 from screens.invoice import InvoiceScreen as InvoiceGenerator
+# Add this import for repair invoice functionality
+from screens.repair_invoice import RepairInvoiceScreen
 
 # Set QR scanner availability flag
 QR_SCANNER_AVAILABLE = False
@@ -203,6 +205,10 @@ class InventoryManagementSystem(QMainWindow):
             self.invoice_generator.load_sale_data()
     
     def show_repair_invoice(self, repair_id):
+        # Clear current central widget if exists
+        if hasattr(self, 'current_screen'):
+            self.current_screen.deleteLater()
+        
         # Check if user is authenticated
         if not self.is_authenticated:
             QMessageBox.warning(self, "Access Denied", "You must be logged in to access this page.")
@@ -225,10 +231,10 @@ class InventoryManagementSystem(QMainWindow):
         repair_parts = self.db_manager.get_repair_parts(repair_id)
         print(f"Repair parts found: {len(repair_parts)} parts")
         
-        # Create a new RepairInvoiceScreen instance
-        from screens.invoice import RepairInvoiceScreen
-        repair_invoice = RepairInvoiceScreen(self, repair_id)
-        repair_invoice.show()
+        # Create and show repair invoice screen
+        self.current_screen = RepairInvoiceScreen(self, repair_id)
+        self.setCentralWidget(self.current_screen)
+        self.current_screen.show()
         print(f"RepairInvoiceScreen created and shown for repair_id: {repair_id}")
     
     def show_qr_scanner(self, callback=None):
