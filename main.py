@@ -205,10 +205,6 @@ class InventoryManagementSystem(QMainWindow):
             self.invoice_generator.load_sale_data()
     
     def show_repair_invoice(self, repair_id):
-        # Clear current central widget if exists
-        if hasattr(self, 'current_screen'):
-            self.current_screen.deleteLater()
-        
         # Check if user is authenticated
         if not self.is_authenticated:
             QMessageBox.warning(self, "Access Denied", "You must be logged in to access this page.")
@@ -231,10 +227,18 @@ class InventoryManagementSystem(QMainWindow):
         repair_parts = self.db_manager.get_repair_parts(repair_id)
         print(f"Repair parts found: {len(repair_parts)} parts")
         
-        # Create and show repair invoice screen
-        self.current_screen = RepairInvoiceScreen(self, repair_id)
-        self.setCentralWidget(self.current_screen)
-        self.current_screen.show()
+        # Create repair invoice screen if it doesn't exist or recreate it
+        if hasattr(self, 'repair_invoice_screen'):
+            # Remove the old one from stacked widget if it exists
+            index = self.stacked_widget.indexOf(self.repair_invoice_screen)
+            if index != -1:
+                self.stacked_widget.removeWidget(self.repair_invoice_screen)
+            self.repair_invoice_screen.deleteLater()
+            
+        # Create new repair invoice screen and add to stacked widget
+        self.repair_invoice_screen = RepairInvoiceScreen(self, repair_id)
+        self.stacked_widget.addWidget(self.repair_invoice_screen)
+        self.stacked_widget.setCurrentWidget(self.repair_invoice_screen)
         print(f"RepairInvoiceScreen created and shown for repair_id: {repair_id}")
     
     def show_qr_scanner(self, callback=None):

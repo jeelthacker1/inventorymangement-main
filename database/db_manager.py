@@ -316,7 +316,7 @@ class DatabaseManager:
         
         self.cursor.execute('''
         SELECT * FROM products 
-        WHERE (store_quantity + warehouse_quantity) < min_stock_level
+        WHERE store_quantity < min_stock_level OR warehouse_quantity < min_stock_level
         ORDER BY (store_quantity + warehouse_quantity) ASC
         ''')
         products = [dict(row) for row in self.cursor.fetchall()]
@@ -1109,17 +1109,28 @@ class DatabaseManager:
         
         # Convert to dictionary with category as key
         category_data = {}
+        
+        # Calculate total revenue for percentage calculation
+        total_revenue = sum(dict(row)['revenue'] for row in results) if results else 0
+        
         for row in results:
-            if row['category']:
-                category = row['category']
-            else:
-                category = 'Uncategorized'
-                
-            category_data[category] = dict(row)
+            row_dict = dict(row)
+            category = row_dict['category'] or 'Uncategorized'
+            revenue = row_dict['revenue'] or 0
+            cost = row_dict['cost'] or 0
+            margin = revenue - cost
+            
+            category_data[category] = {
+                'revenue': revenue,
+                'cost': cost,
+                'margin': margin,
+                'quantity_sold': row_dict['quantity_sold'],
+                'num_sales': row_dict['num_sales'],
+                'percentage': (revenue / total_revenue * 100) if total_revenue > 0 else 0
+            }
         
         self.close()
         return category_data
-        
     def get_total_expenses(self, start_date=None, end_date=None):
         """Get total expenses for a given period"""
         self.connect()
@@ -1225,6 +1236,162 @@ class DatabaseManager:
         
         self.close()
         return result
+        
+    def get_sales_by_payment_method(self, start_date=None, end_date=None):
+        """Get sales data grouped by payment method"""
+        self.connect()
+        
+        query = '''
+        SELECT 
+            payment_method,
+            COUNT(*) as num_sales,
+            SUM(final_amount) as total_amount
+        FROM sales
+        '''
+        
+        params = []
+        if start_date and end_date:
+            query += "WHERE created_at BETWEEN ? AND ?"
+            params.extend([start_date, end_date])
+        
+        query += '''
+        GROUP BY payment_method
+        ORDER BY total_amount DESC
+        '''
+        
+        self.cursor.execute(query, params)
+        results = self.cursor.fetchall()
+        
+        # Convert to dictionary with payment method as key
+        payment_data = {}
+        total_amount = 0
+        
+        # First calculate total amount for percentage calculation
+        for row in results:
+            if row['payment_method']:
+                total_amount += row['total_amount'] or 0
+        
+        # Then process each payment method
+        for row in results:
+            if row['payment_method']:
+                method = row['payment_method']
+            else:
+                method = 'Other'
+                
+            payment_data[method] = dict(row)
+            # Calculate percentage
+            if total_amount > 0:
+                payment_data[method]['percentage'] = (row['total_amount'] / total_amount) * 100
+            else:
+                payment_data[method]['percentage'] = 0
+        
+        self.close()
+        return payment_data
+        
+    def get_expenses_by_category(self, start_date=None, end_date=None):
+        """Get expenses grouped by category"""
+        self.connect()
+        
+        query = '''
+        SELECT 
+            category,
+            COUNT(*) as num_expenses,
+            SUM(amount) as total_amount
+        FROM expenses
+        '''
+        
+        params = []
+        if start_date and end_date:
+            query += "WHERE date BETWEEN ? AND ?"
+            params.extend([start_date, end_date])
+        
+        query += '''
+        GROUP BY category
+        ORDER BY total_amount DESC
+        '''
+        
+        self.cursor.execute(query, params)
+        results = self.cursor.fetchall()
+        
+        # Convert to dictionary with category as key
+        category_data = {}
+        
+        # Calculate total expenses for percentage calculation
+        total_expenses = sum(dict(row)['total_amount'] for row in results)
+        
+        for row in results:
+            row_dict = dict(row)
+            category = row_dict['category'] or 'Uncategorized'
+            category_data[category] = {
+                'num_expenses': row_dict['num_expenses'],
+                'total_amount': row_dict['total_amount'],
+                'percentage': (row_dict['total_amount'] / total_expenses * 100) if total_expenses > 0 else 0
+            }
+        
+        self.close()
+        return category_data
+        
+    def get_inventory_value_by_category(self):
+        """Get inventory value grouped by product category"""
+        self.connect()
+        
+        query = '''
+        SELECT 
+            category,
+            SUM(store_quantity * cost_price) as store_value,
+            SUM(warehouse_quantity * cost_price) as warehouse_value,
+            SUM((store_quantity + warehouse_quantity) * cost_price) as total_value,
+            COUNT(*) as num_products
+        FROM products
+        GROUP BY category
+        ORDER BY total_value DESC
+        '''
+        
+        self.cursor.execute(query)
+        results = self.cursor.fetchall()
+        
+        # Convert to dictionary with category as key
+        category_data = {}
+        
+        # Calculate total inventory value for percentage calculation
+        total_inventory_value = sum(dict(row)['total_value'] for row in results)
+        
+        for row in results:
+            row_dict = dict(row)
+            category = row_dict['category'] or 'Uncategorized'
+            category_data[category] = {
+                'store_value': row_dict['store_value'],
+                'warehouse_value': row_dict['warehouse_value'],
+                'total_value': row_dict['total_value'],
+                'num_products': row_dict['num_products'],
+                'percentage': (row_dict['total_value'] / total_inventory_value * 100) if total_inventory_value > 0 else 0
+            }
+        
+        self.close()
+        return category_data
+        total_amount = 0
+        
+        # First calculate total amount for percentage calculation
+        for row in results:
+            if row['category']:
+                total_amount += row['total_amount'] or 0
+        
+        # Then process each category
+        for row in results:
+            if row['category']:
+                category = row['category']
+            else:
+                category = 'Other'
+                
+            category_data[category] = dict(row)
+            # Calculate percentage
+            if total_amount > 0:
+                category_data[category]['percentage'] = (row['total_amount'] / total_amount) * 100
+            else:
+                category_data[category]['percentage'] = 0
+        
+        self.close()
+        return category_data
         
     # Customer related methods
     def get_all_customers(self):

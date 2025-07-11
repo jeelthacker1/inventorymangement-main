@@ -123,23 +123,39 @@ class EmployeeDashboard(QWidget):
         
         content_layout.addWidget(quick_actions_frame)
         
-        # Recent sales table
+        # Recent sales section with container frame
+        recent_sales_section = QFrame()
+        recent_sales_section.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+        """)
+        recent_sales_layout = QVBoxLayout(recent_sales_section)
+        recent_sales_layout.setContentsMargins(15, 15, 15, 15)
+        recent_sales_layout.setSpacing(10)
+        
         recent_sales_label = QLabel("Recent Sales")
         recent_sales_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #2c3e50;")
-        content_layout.addWidget(recent_sales_label)
+        recent_sales_layout.addWidget(recent_sales_label)
         
         self.recent_sales_table = QTableWidget()
         self.recent_sales_table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
-                border-radius: 8px;
                 border: 1px solid #e0e0e0;
             }
             QHeaderView::section {
                 background-color: #f5f5f5;
-                padding: 5px;
+                padding: 8px;
                 border: 1px solid #e0e0e0;
                 font-weight: bold;
+            }
+            QTableWidget::item {
+                padding: 5px;
             }
         """)
         self.recent_sales_table.setColumnCount(5)
@@ -147,26 +163,47 @@ class EmployeeDashboard(QWidget):
         self.recent_sales_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.recent_sales_table.setAlternatingRowColors(True)
         self.recent_sales_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.recent_sales_table.setFixedHeight(200)  # Fixed height to prevent overlapping
         
-        content_layout.addWidget(self.recent_sales_table)
+        recent_sales_layout.addWidget(self.recent_sales_table)
+        content_layout.addWidget(recent_sales_section)
         
-        # Inventory Tasks Table (Todo List)
+        # Add spacing between sections
+        content_layout.addSpacing(15)
+        
+        # Inventory Tasks section with container frame
+        inventory_tasks_section = QFrame()
+        inventory_tasks_section.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+        """)
+        inventory_tasks_layout = QVBoxLayout(inventory_tasks_section)
+        inventory_tasks_layout.setContentsMargins(15, 15, 15, 15)
+        inventory_tasks_layout.setSpacing(10)
+        
         inventory_tasks_label = QLabel("Inventory Tasks")
         inventory_tasks_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #2c3e50;")
-        content_layout.addWidget(inventory_tasks_label)
+        inventory_tasks_layout.addWidget(inventory_tasks_label)
         
         self.inventory_tasks_table = QTableWidget()
         self.inventory_tasks_table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
-                border-radius: 8px;
                 border: 1px solid #e0e0e0;
             }
             QHeaderView::section {
                 background-color: #f5f5f5;
-                padding: 5px;
+                padding: 8px;
                 border: 1px solid #e0e0e0;
                 font-weight: bold;
+            }
+            QTableWidget::item {
+                padding: 5px;
             }
         """)
         self.inventory_tasks_table.setColumnCount(6)
@@ -174,26 +211,47 @@ class EmployeeDashboard(QWidget):
         self.inventory_tasks_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.inventory_tasks_table.setAlternatingRowColors(True)
         self.inventory_tasks_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.inventory_tasks_table.setFixedHeight(200)  # Fixed height to prevent overlapping
         
-        content_layout.addWidget(self.inventory_tasks_table)
+        inventory_tasks_layout.addWidget(self.inventory_tasks_table)
+        content_layout.addWidget(inventory_tasks_section)
         
-        # Pending repairs table
+        # Add spacing between sections
+        content_layout.addSpacing(15)
+        
+        # Pending repairs section with container frame
+        pending_repairs_section = QFrame()
+        pending_repairs_section.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+        """)
+        pending_repairs_layout = QVBoxLayout(pending_repairs_section)
+        pending_repairs_layout.setContentsMargins(15, 15, 15, 15)
+        pending_repairs_layout.setSpacing(10)
+        
         pending_repairs_label = QLabel("Pending Repairs")
         pending_repairs_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #2c3e50;")
-        content_layout.addWidget(pending_repairs_label)
+        pending_repairs_layout.addWidget(pending_repairs_label)
         
         self.pending_repairs_table = QTableWidget()
         self.pending_repairs_table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
-                border-radius: 8px;
                 border: 1px solid #e0e0e0;
             }
             QHeaderView::section {
                 background-color: #f5f5f5;
-                padding: 5px;
+                padding: 8px;
                 border: 1px solid #e0e0e0;
                 font-weight: bold;
+            }
+            QTableWidget::item {
+                padding: 5px;
             }
         """)
         self.pending_repairs_table.setColumnCount(5)
@@ -201,8 +259,10 @@ class EmployeeDashboard(QWidget):
         self.pending_repairs_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.pending_repairs_table.setAlternatingRowColors(True)
         self.pending_repairs_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.pending_repairs_table.setFixedHeight(200)  # Fixed height to prevent overlapping
         
-        content_layout.addWidget(self.pending_repairs_table)
+        pending_repairs_layout.addWidget(self.pending_repairs_table)
+        content_layout.addWidget(pending_repairs_section)
         
         # Set the content area as the widget for the scroll area
         scroll_area.setWidget(content_area)

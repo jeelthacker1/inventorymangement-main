@@ -145,60 +145,44 @@ class ProductManagement(QWidget):
                 font-weight: bold;
             }
         """)
-        # Set columns based on user role
-        if self.main_window.current_user_role == 'admin':
-            self.products_table.setColumnCount(9)
-            self.products_table.setHorizontalHeaderLabels([
-                "ID", "Name", "Category", "Cost Price", "Selling Price", 
-                "Store Qty", "Warehouse Qty", "Total Qty", "Actions"
-            ])
-        else:  # Employee view - hide cost price
-            self.products_table.setColumnCount(8)
-            self.products_table.setHorizontalHeaderLabels([
-                "ID", "Name", "Category", "Selling Price", 
-                "Store Qty", "Warehouse Qty", "Total Qty", "Actions"
-            ])
-        # Set specific column widths
+        # Always set 9 columns for consistency, but hide cost price column for employees
+        self.products_table.setColumnCount(9)
+        self.products_table.setHorizontalHeaderLabels([
+            "ID", "Name", "Category", "Cost Price", "Selling Price", 
+            "Store Qty", "Warehouse Qty", "Total Qty", "Actions"
+        ])
+        
+        # Hide cost price column for employees
+        if self.main_window.current_user_role != 'admin':
+            self.products_table.hideColumn(3)
+        # Set specific column widths - same for both admin and employee views
         header = self.products_table.horizontalHeader()
-        if self.main_window.current_user_role == 'admin':
-            # Admin view column widths
-            header.setSectionResizeMode(0, QHeaderView.Fixed)  # ID
-            header.setSectionResizeMode(1, QHeaderView.Fixed)  # Name
-            header.setSectionResizeMode(2, QHeaderView.Fixed)  # Category
-            header.setSectionResizeMode(3, QHeaderView.Fixed)  # Cost Price
-            header.setSectionResizeMode(4, QHeaderView.Fixed)  # Selling Price
-            header.setSectionResizeMode(5, QHeaderView.Fixed)  # Store Qty
-            header.setSectionResizeMode(6, QHeaderView.Fixed)  # Warehouse Qty
-            header.setSectionResizeMode(7, QHeaderView.Fixed)  # Total Qty
-            header.setSectionResizeMode(8, QHeaderView.Fixed)  # Actions
-            
-            self.products_table.setColumnWidth(0, 40)  # ID
-            self.products_table.setColumnWidth(1, 200)  # Name
-            self.products_table.setColumnWidth(2, 80)  # Category
-            self.products_table.setColumnWidth(3, 80)  # Cost Price
-            self.products_table.setColumnWidth(4, 80)  # Selling Price
-            self.products_table.setColumnWidth(5, 70)  # Store Qty
-            self.products_table.setColumnWidth(6, 90)  # Warehouse Qty
-            self.products_table.setColumnWidth(7, 70)  # Total Qty
-            self.products_table.setColumnWidth(8, 100)  # Actions
-        else:
-            # Employee view column widths
-            header.setSectionResizeMode(0, QHeaderView.Fixed)  # ID
+        
+        # Set resize modes for all columns
+        header.setSectionResizeMode(0, QHeaderView.Fixed)  # ID
+        header.setSectionResizeMode(1, QHeaderView.Fixed)  # Name
+        header.setSectionResizeMode(2, QHeaderView.Fixed)  # Category
+        header.setSectionResizeMode(3, QHeaderView.Fixed)  # Cost Price
+        header.setSectionResizeMode(4, QHeaderView.Fixed)  # Selling Price
+        header.setSectionResizeMode(5, QHeaderView.Fixed)  # Store Qty
+        header.setSectionResizeMode(6, QHeaderView.Fixed)  # Warehouse Qty
+        header.setSectionResizeMode(7, QHeaderView.Fixed)  # Total Qty
+        header.setSectionResizeMode(8, QHeaderView.Fixed)  # Actions
+        
+        # Set column widths
+        self.products_table.setColumnWidth(0, 40)   # ID
+        self.products_table.setColumnWidth(1, 200)  # Name
+        self.products_table.setColumnWidth(2, 80)   # Category
+        self.products_table.setColumnWidth(3, 80)   # Cost Price
+        self.products_table.setColumnWidth(4, 80)   # Selling Price
+        self.products_table.setColumnWidth(5, 70)   # Store Qty
+        self.products_table.setColumnWidth(6, 90)   # Warehouse Qty
+        self.products_table.setColumnWidth(7, 70)   # Total Qty
+        self.products_table.setColumnWidth(8, 130)  # Actions
+        
+        # For employee view, make the Name column stretch to fill space
+        if self.main_window.current_user_role != 'admin':
             header.setSectionResizeMode(1, QHeaderView.Stretch)  # Name
-            header.setSectionResizeMode(2, QHeaderView.Fixed)  # Category
-            header.setSectionResizeMode(3, QHeaderView.Fixed)  # Selling Price
-            header.setSectionResizeMode(4, QHeaderView.Fixed)  # Store Qty
-            header.setSectionResizeMode(5, QHeaderView.Fixed)  # Warehouse Qty
-            header.setSectionResizeMode(6, QHeaderView.Fixed)  # Total Qty
-            header.setSectionResizeMode(7, QHeaderView.Fixed)  # Actions
-            
-            self.products_table.setColumnWidth(0, 40)  # ID
-            self.products_table.setColumnWidth(2, 80)  # Category
-            self.products_table.setColumnWidth(3, 80)  # Selling Price
-            self.products_table.setColumnWidth(4, 70)  # Store Qty
-            self.products_table.setColumnWidth(5, 90)  # Warehouse Qty
-            self.products_table.setColumnWidth(6, 70)  # Total Qty
-            self.products_table.setColumnWidth(7, 130)  # Actions
         self.products_table.setAlternatingRowColors(True)
         self.products_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.products_table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -279,61 +263,34 @@ class ProductManagement(QWidget):
         self.products_table.setItem(row, 1, QTableWidgetItem(product['name']))
         self.products_table.setItem(row, 2, QTableWidgetItem(product.get('category', '')))
 
-        if is_admin:
-            # Admin view - includes cost price column
-            # Column 3: Cost Price
-            cost_price_item = QTableWidgetItem(f"₹{product['cost_price']:.2f}")
-            cost_price_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.products_table.setItem(row, 3, cost_price_item)
-            
-            # Column 4: Selling Price
-            selling_price_item = QTableWidgetItem(f"₹{product['selling_price']:.2f}")
-            selling_price_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.products_table.setItem(row, 4, selling_price_item)
-            
-            # Column 5: Store Quantity
-            store_qty_item = QTableWidgetItem(str(product['store_quantity']))
-            if product['store_quantity'] < product['min_stock_level']:
-                store_qty_item.setForeground(QColor('#e74c3c'))
-            self.products_table.setItem(row, 5, store_qty_item)
-            
-            # Column 6: Warehouse Quantity
-            warehouse_qty_item = QTableWidgetItem(str(product['warehouse_quantity']))
-            self.products_table.setItem(row, 6, warehouse_qty_item)
-            
-            # Column 7: Total Quantity
-            total_qty = product['store_quantity'] + product['warehouse_quantity']
-            total_qty_item = QTableWidgetItem(str(total_qty))
-            self.products_table.setItem(row, 7, total_qty_item)
-            
-            # Column 8: Actions
-            actions_widget = self.create_actions_widget(product['id'])
-            self.products_table.setCellWidget(row, 8, actions_widget)
-        else:
-            # Employee view - no cost price column
-            # Column 3: Selling Price (shifted left)
-            selling_price_item = QTableWidgetItem(f"₹{product['selling_price']:.2f}")
-            selling_price_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.products_table.setItem(row, 3, selling_price_item)
-            
-            # Column 4: Store Quantity (shifted left)
-            store_qty_item = QTableWidgetItem(str(product['store_quantity']))
-            if product['store_quantity'] < product['min_stock_level']:
-                store_qty_item.setForeground(QColor('#e74c3c'))
-            self.products_table.setItem(row, 4, store_qty_item)
-            
-            # Column 5: Warehouse Quantity (shifted left)
-            warehouse_qty_item = QTableWidgetItem(str(product['warehouse_quantity']))
-            self.products_table.setItem(row, 5, warehouse_qty_item)
-            
-            # Column 6: Total Quantity (shifted left)
-            total_qty = product['store_quantity'] + product['warehouse_quantity']
-            total_qty_item = QTableWidgetItem(str(total_qty))
-            self.products_table.setItem(row, 6, total_qty_item)
-            
-            # Column 7: Actions (shifted left)
-            actions_widget = self.create_actions_widget(product['id'])
-            self.products_table.setCellWidget(row, 7, actions_widget)
+        # Column 3: Cost Price (hidden for employees)
+        cost_price_item = QTableWidgetItem(f"₹{product['cost_price']:.2f}")
+        cost_price_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.products_table.setItem(row, 3, cost_price_item)
+        
+        # Column 4: Selling Price
+        selling_price_item = QTableWidgetItem(f"₹{product['selling_price']:.2f}")
+        selling_price_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.products_table.setItem(row, 4, selling_price_item)
+        
+        # Column 5: Store Quantity
+        store_qty_item = QTableWidgetItem(str(product['store_quantity']))
+        if product['store_quantity'] < product['min_stock_level']:
+            store_qty_item.setForeground(QColor('#e74c3c'))
+        self.products_table.setItem(row, 5, store_qty_item)
+        
+        # Column 6: Warehouse Quantity
+        warehouse_qty_item = QTableWidgetItem(str(product['warehouse_quantity']))
+        self.products_table.setItem(row, 6, warehouse_qty_item)
+        
+        # Column 7: Total Quantity
+        total_qty = product['store_quantity'] + product['warehouse_quantity']
+        total_qty_item = QTableWidgetItem(str(total_qty))
+        self.products_table.setItem(row, 7, total_qty_item)
+        
+        # Column 8: Actions - same for both admin and employee views
+        actions_widget = self.create_actions_widget(product['id'])
+        self.products_table.setCellWidget(row, 8, actions_widget)
     
     def create_actions_widget(self, product_id):
         # Create actions widget with edit and quantity buttons

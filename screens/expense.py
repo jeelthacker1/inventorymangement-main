@@ -14,6 +14,10 @@ class ExpenseScreen(QWidget):
         self.init_ui()
         self.load_expenses()
     
+    def go_back(self):
+        """Return to the admin dashboard"""
+        self.main_window.show_admin_dashboard()
+    
     def init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(20, 20, 20, 20)
@@ -21,6 +25,25 @@ class ExpenseScreen(QWidget):
         
         # Title and add button
         title_layout = QHBoxLayout()
+        
+        # Back button
+        back_btn = QPushButton("← Back")
+        back_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """)
+        back_btn.clicked.connect(self.go_back)
+        title_layout.addWidget(back_btn)
+        
+        title_layout.addSpacing(20)
         
         title_label = QLabel("Expense Management")
         title_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #2c3e50;")

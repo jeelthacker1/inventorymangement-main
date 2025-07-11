@@ -27,8 +27,25 @@ class InventoryReportScreen(QWidget):
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(20)
         
-        # Title and export buttons
+        # Title and back button
         title_layout = QHBoxLayout()
+        
+        # Back button
+        back_btn = QPushButton("← Back")
+        back_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """)
+        back_btn.clicked.connect(self.go_back)
+        title_layout.addWidget(back_btn)
         
         title_label = QLabel("Inventory Report")
         title_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #2c3e50;")
@@ -610,3 +627,7 @@ class InventoryReportScreen(QWidget):
         """
         
         return html
+    
+    def go_back(self):
+        """Return to the previous screen"""
+        self.main_window.show_admin_dashboard()

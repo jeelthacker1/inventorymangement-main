@@ -27,6 +27,10 @@ class AnalyticsScreen(QWidget):
         self.refresh_timer.timeout.connect(self.refresh_data)
         self.refresh_timer.start(300000)  # 300,000 ms = 5 minutes
     
+    def go_back(self):
+        """Return to the previous screen"""
+        self.main_window.show_admin_dashboard()
+    
     def init_ui(self):
         # Main layout
         main_layout = QVBoxLayout(self)
@@ -596,8 +600,8 @@ class AnalyticsScreen(QWidget):
         self.sales_canvas.draw()
     
     def update_payment_method_chart(self, start_date, end_date):
-        # This would require a method in the database manager to get sales by payment method
-        # For now, we'll use dummy data
+        # Get payment method data from database
+        payment_data = self.main_window.db_manager.get_sales_by_payment_method(start_date, end_date)
         
         # Clear the figure
         self.payment_figure.clear()
@@ -605,29 +609,42 @@ class AnalyticsScreen(QWidget):
         # Create subplot
         ax = self.payment_figure.add_subplot(111)
         
-        # Dummy data
-        methods = ['Cash', 'Credit Card', 'UPI', 'Other']
-        values = [45, 30, 20, 5]  # Percentages
-        colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12']
-        
-        # Plot the data
-        wedges, texts, autotexts = ax.pie(values, labels=methods, autopct='%1.1f%%', 
-                                         startangle=90, colors=colors)
-        
-        # Equal aspect ratio ensures that pie is drawn as a circle
-        ax.axis('equal')
-        ax.set_title('Sales by Payment Method')
-        
-        # Make text more readable
-        for text in texts + autotexts:
-            text.set_fontsize(9)
+        if not payment_data:
+            ax.text(0.5, 0.5, "No sales data for selected period", 
+                   horizontalalignment='center', verticalalignment='center',
+                   transform=ax.transAxes, fontsize=12)
+        else:
+            # Extract data for plotting
+            methods = list(payment_data.keys())
+            values = [data['percentage'] for data in payment_data.values()]
+            
+            # Define colors based on number of payment methods
+            colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#34495e', '#1abc9c']
+            colors = colors[:len(methods)]  # Limit colors to number of methods
+            
+            # Plot the data
+            wedges, texts, autotexts = ax.pie(values, labels=methods, autopct='%1.1f%%', 
+                                             startangle=90, colors=colors)
+            
+            # Equal aspect ratio ensures that pie is drawn as a circle
+            ax.axis('equal')
+            ax.set_title('Sales by Payment Method')
+            
+            # Make text more readable
+            for text in texts + autotexts:
+                text.set_fontsize(9)
+            
+            # Add total sales amount
+            total_amount = sum(data['total_amount'] for data in payment_data.values())
+            ax.text(0.5, -0.1, f"Total Sales: ₹{total_amount:.2f}", 
+                   horizontalalignment='center', transform=ax.transAxes, fontsize=10)
         
         self.payment_figure.tight_layout()
         self.payment_canvas.draw()
     
     def update_sales_by_category_chart(self, start_date, end_date):
-        # This would require a method in the database manager to get sales by category
-        # For now, we'll use dummy data
+        # Get sales by category data from database
+        category_data = self.main_window.db_manager.get_sales_by_category(start_date, end_date)
         
         # Clear the figure
         self.category_figure.clear()
@@ -635,19 +652,38 @@ class AnalyticsScreen(QWidget):
         # Create subplot
         ax = self.category_figure.add_subplot(111)
         
-        # Dummy data
-        categories = ['Electronics', 'Clothing', 'Food', 'Books', 'Other']
-        values = [35, 25, 15, 15, 10]  # Percentages
-        colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6']
-        
-        # Plot the data
-        ax.bar(categories, values, color=colors)
-        ax.set_title('Sales by Category (%)')
-        ax.set_ylabel('Percentage of Sales')
-        ax.set_ylim(0, 100)
-        
-        # Set ticks and rotate x-axis labels
-        ax.set_xticks(range(len(categories)))  # Set the tick positions
+        if not category_data:
+            ax.text(0.5, 0.5, "No sales data for selected period", 
+                   horizontalalignment='center', verticalalignment='center',
+                   transform=ax.transAxes, fontsize=12)
+        else:
+            # Extract data for plotting
+            categories = list(category_data.keys())
+            
+            # Calculate total revenue for percentage calculation
+            total_revenue = sum(data['revenue'] for data in category_data.values())
+            
+            # Calculate percentages
+            values = []
+            for category in categories:
+                if total_revenue > 0:
+                    percentage = (category_data[category]['revenue'] / total_revenue) * 100
+                else:
+                    percentage = 0
+                values.append(percentage)
+            
+            # Define colors based on number of categories
+            colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#34495e', '#1abc9c']
+            colors = colors[:len(categories)]  # Limit colors to number of categories
+            
+            # Plot the data
+            ax.bar(categories, values, color=colors)
+            ax.set_title('Sales by Category (%)')
+            ax.set_ylabel('Percentage of Sales')
+            ax.set_ylim(0, max(values) * 1.2 if values else 100)  # Set y-limit with some padding
+            
+            # Set ticks and rotate x-axis labels
+            ax.set_xticks(range(len(categories)))  # Set the tick positions
         ax.set_xticklabels(categories, rotation=45, ha='right')  # Set the tick labels
         
         # Add grid
@@ -814,8 +850,8 @@ class AnalyticsScreen(QWidget):
         self.profit_canvas.draw()
     
     def update_expense_chart(self, start_date, end_date):
-        # This would require a method in the database manager to get expenses by category
-        # For now, we'll use dummy data
+        # Get expenses by category data from database
+        expense_data = self.main_window.db_manager.get_expenses_by_category(start_date, end_date)
         
         # Clear the figure
         self.expense_figure.clear()
@@ -823,22 +859,38 @@ class AnalyticsScreen(QWidget):
         # Create subplot
         ax = self.expense_figure.add_subplot(111)
         
-        # Dummy data
-        categories = ['Rent', 'Utilities', 'Salaries', 'Marketing', 'Other']
-        values = [40, 15, 30, 10, 5]  # Percentages
-        colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6']
+        if not expense_data:
+            ax.text(0.5, 0.5, "No expense data for selected period", 
+                   horizontalalignment='center', verticalalignment='center',
+                   transform=ax.transAxes, fontsize=12)
+        else:
+            # Extract data for plotting
+            categories = list(expense_data.keys())
+            values = [data['percentage'] for data in expense_data.values()]
+            
+            # Define colors based on number of categories
+            colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#34495e', '#1abc9c']
+            colors = colors[:len(categories)]  # Limit colors to number of categories
+            
+            # Plot the data
+            wedges, texts, autotexts = ax.pie(values, labels=categories, autopct='%1.1f%%', 
+                                             startangle=90, colors=colors)
         
-        # Plot the data
-        wedges, texts, autotexts = ax.pie(values, labels=categories, autopct='%1.1f%%', 
-                                         startangle=90, colors=colors)
-        
-        # Equal aspect ratio ensures that pie is drawn as a circle
-        ax.axis('equal')
+        # Always set the title
         ax.set_title('Expenses by Category')
         
-        # Make text more readable
-        for text in texts + autotexts:
-            text.set_fontsize(9)
+        if expense_data:
+            # Equal aspect ratio ensures that pie is drawn as a circle
+            ax.axis('equal')
+            
+            # Make text more readable
+            for text in texts + autotexts:
+                text.set_fontsize(9)
+                
+            # Add total expenses amount
+            total_amount = sum(data['total_amount'] for data in expense_data.values())
+            ax.text(0.5, -0.1, f"Total Expenses: ₹{total_amount:.2f}", 
+                   horizontalalignment='center', transform=ax.transAxes, fontsize=10)
         
         self.expense_figure.tight_layout()
         self.expense_canvas.draw()
@@ -922,8 +974,8 @@ class AnalyticsScreen(QWidget):
         self.inventory_canvas.draw()
     
     def update_inventory_value_chart(self):
-        # This would require a method in the database manager to get inventory value by category
-        # For now, we'll use dummy data
+        # Get inventory value by category data from database
+        inventory_data = self.main_window.db_manager.get_inventory_value_by_category()
         
         # Clear the figure
         self.inventory_value_figure.clear()
@@ -931,23 +983,36 @@ class AnalyticsScreen(QWidget):
         # Create subplot
         ax = self.inventory_value_figure.add_subplot(111)
         
-        # Dummy data
-        categories = ['Electronics', 'Clothing', 'Food', 'Books', 'Other']
-        values = [50000, 30000, 15000, 10000, 5000]  # Values in rupees
-        colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6']
-        
-        # Plot the data
-        wedges, texts, autotexts = ax.pie(values, labels=categories, 
-                                         autopct=lambda p: f'₹{p * sum(values) / 100:.0f}', 
-                                         startangle=90, colors=colors)
-        
-        # Equal aspect ratio ensures that pie is drawn as a circle
-        ax.axis('equal')
-        ax.set_title('Inventory Value by Category')
-        
-        # Make text more readable
-        for text in texts + autotexts:
-            text.set_fontsize(9)
+        if not inventory_data:
+            ax.text(0.5, 0.5, "No inventory data available", 
+                   horizontalalignment='center', verticalalignment='center',
+                   transform=ax.transAxes, fontsize=12)
+        else:
+            # Extract data for plotting
+            categories = list(inventory_data.keys())
+            values = [data['total_value'] for data in inventory_data.values()]
+            total_value = sum(values)
+            
+            # Define colors based on number of categories
+            colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#34495e', '#1abc9c']
+            colors = colors[:len(categories)]  # Limit colors to number of categories
+            
+            # Plot the data
+            wedges, texts, autotexts = ax.pie(values, labels=categories, 
+                                             autopct=lambda p: f'₹{p * total_value / 100:.0f}', 
+                                             startangle=90, colors=colors)
+            
+            # Equal aspect ratio ensures that pie is drawn as a circle
+            ax.axis('equal')
+            ax.set_title('Inventory Value by Category')
+            
+            # Make text more readable
+            for text in texts + autotexts:
+                text.set_fontsize(9)
+                
+            # Add total inventory value
+            ax.text(0.5, -0.1, f"Total Inventory Value: ₹{total_value:.2f}", 
+                   horizontalalignment='center', transform=ax.transAxes, fontsize=10)
         
         self.inventory_value_figure.tight_layout()
         self.inventory_value_canvas.draw()
