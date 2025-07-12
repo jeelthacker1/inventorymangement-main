@@ -414,6 +414,7 @@ class AdminDashboard(QWidget):
                 border: 1px solid #e0e0e0;
                 font-weight: bold;
                 font-size: 12px;
+                color: #2c3e50;
             }
             QTableWidget::item {
                 padding: 5px;
@@ -425,6 +426,8 @@ class AdminDashboard(QWidget):
         self.low_stock_table.setColumnCount(6)
         self.low_stock_table.setHorizontalHeaderLabels(["ID", "Product Name", "Store Qty", "Warehouse Qty", "Min Level", "Actions"])
         self.low_stock_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.low_stock_table.horizontalHeader().setVisible(True)
+        self.low_stock_table.horizontalHeader().setHighlightSections(True)
         self.low_stock_table.setAlternatingRowColors(True)
         self.low_stock_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.low_stock_table.setMinimumHeight(200)  # Increased minimum height
@@ -473,6 +476,7 @@ class AdminDashboard(QWidget):
                 border: 1px solid #e0e0e0;
                 font-weight: bold;
                 font-size: 12px;
+                color: #2c3e50;
             }
             QTableWidget::item {
                 padding: 5px;
@@ -484,6 +488,8 @@ class AdminDashboard(QWidget):
         self.non_selling_table.setColumnCount(5)
         self.non_selling_table.setHorizontalHeaderLabels(["ID", "Product Name", "Store Qty", "Price", "Actions"])
         self.non_selling_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.non_selling_table.horizontalHeader().setVisible(True)
+        self.non_selling_table.horizontalHeader().setHighlightSections(True)
         self.non_selling_table.setAlternatingRowColors(True)  # Add alternating row colors
         self.non_selling_table.setEditTriggers(QTableWidget.NoEditTriggers)  # Make table non-editable
         self.non_selling_table.setMinimumHeight(200)  # Set minimum height

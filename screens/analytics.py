@@ -564,10 +564,10 @@ class AnalyticsScreen(QWidget):
             
             # Set labels and title
             period_label = 'Day' if period_type == 'day' else 'Week' if period_type == 'week' else 'Month'
-            ax.set_title(f'Sales Trend by {period_label}')
-            ax.set_xlabel(period_label)
-            ax.set_ylabel('Amount (₹)')
-            ax2.set_ylabel('Number of Sales')
+            ax.set_title(f'Sales Trend by {period_label}', fontsize=12, fontweight='bold')
+            ax.set_xlabel(period_label, fontsize=10)
+            ax.set_ylabel('Amount (₹)', fontsize=10)
+            ax2.set_ylabel('Number of Sales', fontsize=10)
             
             # Set x-axis ticks
             if len(periods) > 10:
@@ -575,10 +575,10 @@ class AnalyticsScreen(QWidget):
                 # Set ticks before labels
                 ticks = [i for i in range(0, len(periods), step)]
                 ax.set_xticks(ticks)
-                ax.set_xticklabels([periods[i] for i in ticks], rotation=45)
+                ax.set_xticklabels([periods[i] for i in ticks], rotation=45, ha='right', fontsize=10)
             else:
                 ax.set_xticks(range(len(periods)))
-                ax.set_xticklabels(periods, rotation=45)
+                ax.set_xticklabels(periods, rotation=45, ha='right', fontsize=10)
             
             # Add grid
             ax.grid(True, linestyle='--', alpha=0.7)
@@ -596,7 +596,7 @@ class AnalyticsScreen(QWidget):
             ax.text(0.02, 0.88, f"Transactions: {total_transactions}", transform=ax.transAxes,
                    fontsize=10, fontweight='bold', bbox=dict(facecolor='white', alpha=0.8))
         
-        self.sales_figure.tight_layout()
+        self.sales_figure.tight_layout(pad=2.0)  # Increase padding for better visibility
         self.sales_canvas.draw()
     
     def update_payment_method_chart(self, start_date, end_date):
@@ -684,12 +684,12 @@ class AnalyticsScreen(QWidget):
             
             # Set ticks and rotate x-axis labels
             ax.set_xticks(range(len(categories)))  # Set the tick positions
-        ax.set_xticklabels(categories, rotation=45, ha='right')  # Set the tick labels
+            ax.set_xticklabels(categories, rotation=45, ha='right', fontsize=10)  # Set the tick labels with increased font size
         
         # Add grid
         ax.grid(True, linestyle='--', alpha=0.7, axis='y')
         
-        self.category_figure.tight_layout()
+        self.category_figure.tight_layout(pad=2.0)  # Increase padding for better visibility
         self.category_canvas.draw()
     
     def update_product_performance_chart(self, start_date, end_date):
@@ -722,19 +722,19 @@ class AnalyticsScreen(QWidget):
             ax2 = ax.twinx()
             ax2.bar(x + width/2, revenues, width, label='Revenue', color='#e74c3c')
             
-            ax.set_title('Top Selling Products')
+            ax.set_title('Top Selling Products', fontsize=12, fontweight='bold')
             ax.set_xticks(x)
             # Set ticks and rotate x-axis labels
-            ax.set_xticklabels(names, rotation=45, ha='right')  # Set the tick labels
-            ax.set_ylabel('Quantity Sold')
-            ax2.set_ylabel('Revenue (₹)')
+            ax.set_xticklabels(names, rotation=45, ha='right', fontsize=10)  # Set the tick labels
+            ax.set_ylabel('Quantity Sold', fontsize=10)
+            ax2.set_ylabel('Revenue (₹)', fontsize=10)
             
             # Add legend
             lines1, labels1 = ax.get_legend_handles_labels()
             lines2, labels2 = ax2.get_legend_handles_labels()
             ax.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
         
-        self.product_figure.tight_layout()
+        self.product_figure.tight_layout(pad=2.0)  # Increase padding for better visibility
         self.product_canvas.draw()
     
     def update_top_products_table(self, start_date, end_date):
@@ -831,14 +831,14 @@ class AnalyticsScreen(QWidget):
             
             # Plot the data
             bars = ax.bar(labels, values, color=colors)
-            ax.set_title('Profit Analysis')
-            ax.set_ylabel('Amount (₹)')
+            ax.set_title('Profit Analysis', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Amount (₹)', fontsize=10)
             
             # Add value labels on top of bars
             for bar in bars:
                 height = bar.get_height()
                 ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                       f'₹{height:.2f}', ha='center', va='bottom', rotation=45, fontsize=8)
+                       f'₹{height:.2f}', ha='center', va='bottom', rotation=45, fontsize=9)
             
             # Add margins and profit percentage
             ax.text(0.02, 0.95, f"Gross Margin: {profit_data['gross_margin']:.1f}%", transform=ax.transAxes,
@@ -846,7 +846,7 @@ class AnalyticsScreen(QWidget):
             ax.text(0.02, 0.88, f"Net Margin: {profit_data['net_margin']:.1f}%", transform=ax.transAxes,
                    fontsize=10, fontweight='bold', bbox=dict(facecolor='white', alpha=0.8))
         
-        self.profit_figure.tight_layout()
+        self.profit_figure.tight_layout(pad=2.0)  # Increase padding for better visibility
         self.profit_canvas.draw()
     
     def update_expense_chart(self, start_date, end_date):
@@ -877,7 +877,7 @@ class AnalyticsScreen(QWidget):
                                              startangle=90, colors=colors)
         
         # Always set the title
-        ax.set_title('Expenses by Category')
+        ax.set_title('Expenses by Category', fontsize=12, fontweight='bold')
         
         if expense_data:
             # Equal aspect ratio ensures that pie is drawn as a circle
@@ -885,14 +885,14 @@ class AnalyticsScreen(QWidget):
             
             # Make text more readable
             for text in texts + autotexts:
-                text.set_fontsize(9)
+                text.set_fontsize(10)
                 
             # Add total expenses amount
             total_amount = sum(data['total_amount'] for data in expense_data.values())
             ax.text(0.5, -0.1, f"Total Expenses: ₹{total_amount:.2f}", 
-                   horizontalalignment='center', transform=ax.transAxes, fontsize=10)
+                   horizontalalignment='center', transform=ax.transAxes, fontsize=11, fontweight='bold')
         
-        self.expense_figure.tight_layout()
+        self.expense_figure.tight_layout(pad=2.0)  # Increase padding for better visibility
         self.expense_canvas.draw()
     
     def update_expenses_table(self, start_date, end_date):
@@ -958,19 +958,20 @@ class AnalyticsScreen(QWidget):
             width = 0.35
             
             # Plot the data
+            # Plot the data
             ax.bar(x - width/2, store_quantities, width, label='Store', color='#3498db')
             ax.bar(x + width/2, warehouse_quantities, width, label='Warehouse', color='#2ecc71')
             
-            ax.set_title('Inventory by Category')
+            ax.set_title('Inventory by Category', fontsize=12, fontweight='bold')
             ax.set_xticks(x)
             # Set ticks and rotate x-axis labels
-            ax.set_xticklabels(cat_names, rotation=45, ha='right')  # Set the tick labels
-            ax.set_ylabel('Quantity')
+            ax.set_xticklabels(cat_names, rotation=45, ha='right', fontsize=10)  # Set the tick labels
+            ax.set_ylabel('Quantity', fontsize=10)
             
             # Add legend
             ax.legend()
         
-        self.inventory_figure.tight_layout()
+        self.inventory_figure.tight_layout(pad=2.0)  # Increase padding for better visibility
         self.inventory_canvas.draw()
     
     def update_inventory_value_chart(self):
@@ -998,23 +999,24 @@ class AnalyticsScreen(QWidget):
             colors = colors[:len(categories)]  # Limit colors to number of categories
             
             # Plot the data
+            # Plot the data
             wedges, texts, autotexts = ax.pie(values, labels=categories, 
                                              autopct=lambda p: f'₹{p * total_value / 100:.0f}', 
                                              startangle=90, colors=colors)
             
             # Equal aspect ratio ensures that pie is drawn as a circle
             ax.axis('equal')
-            ax.set_title('Inventory Value by Category')
+            ax.set_title('Inventory Value by Category', fontsize=12, fontweight='bold')
             
             # Make text more readable
             for text in texts + autotexts:
-                text.set_fontsize(9)
+                text.set_fontsize(10)  # Increased font size for better readability
                 
             # Add total inventory value
             ax.text(0.5, -0.1, f"Total Inventory Value: ₹{total_value:.2f}", 
-                   horizontalalignment='center', transform=ax.transAxes, fontsize=10)
+                   horizontalalignment='center', transform=ax.transAxes, fontsize=11, fontweight='bold')
         
-        self.inventory_value_figure.tight_layout()
+        self.inventory_value_figure.tight_layout(pad=2.0)  # Increase padding for better visibility
         self.inventory_value_canvas.draw()
     
     def update_low_stock_table(self):

@@ -2,7 +2,7 @@ import os
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QFrame, QGridLayout, QSpacerItem,
                              QSizePolicy, QTableWidget, QTableWidgetItem,
-                             QHeaderView, QMessageBox, QScrollArea)
+                             QHeaderView, QMessageBox, QScrollArea, QDialog)
 from PyQt5.QtCore import Qt, QSize, QTimer
 from PyQt5.QtGui import QIcon, QPixmap, QFont, QColor
 import datetime
@@ -153,6 +153,7 @@ class EmployeeDashboard(QWidget):
                 padding: 8px;
                 border: 1px solid #e0e0e0;
                 font-weight: bold;
+                color: #2c3e50;
             }
             QTableWidget::item {
                 padding: 5px;
@@ -161,6 +162,8 @@ class EmployeeDashboard(QWidget):
         self.recent_sales_table.setColumnCount(5)
         self.recent_sales_table.setHorizontalHeaderLabels(["Invoice #", "Customer", "Amount", "Date", "Actions"])
         self.recent_sales_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.recent_sales_table.horizontalHeader().setVisible(True)
+        self.recent_sales_table.horizontalHeader().setHighlightSections(True)
         self.recent_sales_table.setAlternatingRowColors(True)
         self.recent_sales_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.recent_sales_table.setFixedHeight(200)  # Fixed height to prevent overlapping
@@ -201,6 +204,7 @@ class EmployeeDashboard(QWidget):
                 padding: 8px;
                 border: 1px solid #e0e0e0;
                 font-weight: bold;
+                color: #2c3e50;
             }
             QTableWidget::item {
                 padding: 5px;
@@ -209,6 +213,8 @@ class EmployeeDashboard(QWidget):
         self.inventory_tasks_table.setColumnCount(6)
         self.inventory_tasks_table.setHorizontalHeaderLabels(["ID", "Product", "Store Qty", "Warehouse Qty", "Status", "Actions"])
         self.inventory_tasks_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.inventory_tasks_table.horizontalHeader().setVisible(True)
+        self.inventory_tasks_table.horizontalHeader().setHighlightSections(True)
         self.inventory_tasks_table.setAlternatingRowColors(True)
         self.inventory_tasks_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.inventory_tasks_table.setFixedHeight(200)  # Fixed height to prevent overlapping
@@ -249,14 +255,17 @@ class EmployeeDashboard(QWidget):
                 padding: 8px;
                 border: 1px solid #e0e0e0;
                 font-weight: bold;
+                color: #2c3e50;
             }
             QTableWidget::item {
                 padding: 5px;
             }
         """)
         self.pending_repairs_table.setColumnCount(5)
-        self.pending_repairs_table.setHorizontalHeaderLabels(["ID", "Customer", "Product", "Status", "Actions"])
+        self.pending_repairs_table.setHorizontalHeaderLabels(["ID", "Customer", "Description", "Status", "Actions"])
         self.pending_repairs_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.pending_repairs_table.horizontalHeader().setVisible(True)
+        self.pending_repairs_table.horizontalHeader().setHighlightSections(True)
         self.pending_repairs_table.setAlternatingRowColors(True)
         self.pending_repairs_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.pending_repairs_table.setFixedHeight(200)  # Fixed height to prevent overlapping
@@ -500,67 +509,31 @@ class EmployeeDashboard(QWidget):
             self.inventory_tasks_table.setItem(row, 4, status_item)
             
             # Actions button
-            assemble_btn = QPushButton("Move to Store")
-            assemble_btn.setStyleSheet("""
+            qty_mgmt_btn = QPushButton("Product Qty Management")
+            qty_mgmt_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #f39c12;
+                    background-color: #3498db;
                     color: white;
                     border-radius: 4px;
                     padding: 5px;
                 }
                 QPushButton:hover {
-                    background-color: #d35400;
+                    background-color: #2980b9;
                 }
             """)
             
             # Use a lambda with a default argument to capture the current product_id
-            assemble_btn.clicked.connect(lambda checked, product_id=product['id']: self.move_to_store(product_id))
+            qty_mgmt_btn.clicked.connect(lambda checked, product_id=product['id']: self.show_quantity_dialog(product_id))
             
-            self.inventory_tasks_table.setCellWidget(row, 5, assemble_btn)
+            self.inventory_tasks_table.setCellWidget(row, 5, qty_mgmt_btn)
             row += 1
     
-    def move_to_store(self, product_id):
-        # Get the product details
-        product = self.main_window.db_manager.get_product(product_id)
-        if not product:
-            QMessageBox.warning(self, "Error", "Product not found.")
-            return
+    def show_quantity_dialog(self, product_id):
+        # Import the QuantityDialog class from product_management
+        from screens.product_management import QuantityDialog
         
-        # Calculate how many to move (move all if less than 5, otherwise move enough to reach 5 in store)
-        warehouse_qty = product['warehouse_quantity']
-        store_qty = product['store_quantity']
-        
-        if warehouse_qty <= 0:
-            QMessageBox.warning(self, "Error", "No items available in warehouse.")
-            return
-        
-        qty_to_move = min(warehouse_qty, 5 - store_qty) if store_qty < 5 else 1
-        
-        # Confirm with the user
-        confirm = QMessageBox.question(
-            self, 
-            "Confirm Move", 
-            f"Move {qty_to_move} units of {product['name']} from warehouse to store?",
-            QMessageBox.Yes | QMessageBox.No
-        )
-        
-        if confirm == QMessageBox.Yes:
-            # Update quantities
-            new_store_qty = store_qty + qty_to_move
-            new_warehouse_qty = warehouse_qty - qty_to_move
-            
-            # Update in database
-            success = self.main_window.db_manager.update_product_quantities(
-                product_id, new_store_qty, new_warehouse_qty
-            )
-            
-            if success:
-                QMessageBox.information(
-                    self, 
-                    "Success", 
-                    f"Successfully moved {qty_to_move} units to store."
-                )
-                # Refresh the data
-                self.refresh_data()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to update quantities.")
+        # Create and show the quantity dialog
+        dialog = QuantityDialog(self, self.main_window, product_id)
+        if dialog.exec_() == QDialog.Accepted:
+            # Refresh the data
+            self.refresh_data()

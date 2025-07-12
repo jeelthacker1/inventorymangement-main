@@ -315,7 +315,19 @@ class RepairScreen(QWidget):
             table.setItem(row, 1, QTableWidgetItem(repair['customer_name']))
             
             # Device
-            table.setItem(row, 2, QTableWidgetItem(repair['product_description']))
+            device_text = repair['product_description']
+            # Add bicycle indicator if it's a bicycle repair
+            if 'is_bicycle' in repair and repair['is_bicycle']:
+                device_text = f"🚲 {device_text}"
+                if 'bicycle_brand' in repair and repair['bicycle_brand']:
+                    device_text += f"\n{repair['bicycle_brand']}"
+                if 'bicycle_model' in repair and repair['bicycle_model']:
+                    device_text += f" {repair['bicycle_model']}"
+            
+            device_item = QTableWidgetItem(device_text)
+            if 'is_bicycle' in repair and repair['is_bicycle']:
+                device_item.setBackground(QColor('#e8f7f9'))  # Light blue background for bicycle repairs
+            table.setItem(row, 2, device_item)
             
             # Issue
             issue_item = QTableWidgetItem(repair['issue_description'])
@@ -526,6 +538,41 @@ class RepairDialog(QDialog):
         
         self.serial_number_input = QLineEdit()
         self.serial_number_input.setPlaceholderText("Device serial number or IMEI")
+        
+        # Bicycle checkbox
+        self.is_bicycle_checkbox = QCheckBox("This is a bicycle repair")
+        self.is_bicycle_checkbox.setStyleSheet("font-weight: bold; color: #2980b9;")
+        self.is_bicycle_checkbox.toggled.connect(self.toggle_bicycle_fields)
+        device_layout.addRow("", self.is_bicycle_checkbox)
+        
+        # Bicycle specific fields (initially hidden)
+        self.bicycle_fields_widget = QWidget()
+        bicycle_fields_layout = QFormLayout(self.bicycle_fields_widget)
+        bicycle_fields_layout.setVerticalSpacing(10)
+        
+        self.bicycle_brand_input = QLineEdit()
+        self.bicycle_brand_input.setPlaceholderText("e.g., Trek, Giant, Specialized")
+        
+        self.bicycle_model_input = QLineEdit()
+        self.bicycle_model_input.setPlaceholderText("e.g., FX 3, Defy Advanced, Allez")
+        
+        self.bicycle_type_combo = QComboBox()
+        self.bicycle_type_combo.addItems(["", "Road", "Mountain", "Hybrid", "City", "Electric", "Kids", "Other"])
+        
+        self.bicycle_wheel_size_combo = QComboBox()
+        self.bicycle_wheel_size_combo.addItems(["", "26\"", "27.5\"", "29\"", "700c", "650b", "20\"", "24\"", "Other"])
+        
+        self.bicycle_frame_number_input = QLineEdit()
+        self.bicycle_frame_number_input.setPlaceholderText("Frame/Serial number stamped on the frame")
+        
+        bicycle_fields_layout.addRow("Brand:", self.bicycle_brand_input)
+        bicycle_fields_layout.addRow("Model:", self.bicycle_model_input)
+        bicycle_fields_layout.addRow("Type:", self.bicycle_type_combo)
+        bicycle_fields_layout.addRow("Wheel Size:", self.bicycle_wheel_size_combo)
+        bicycle_fields_layout.addRow("Frame Number:", self.bicycle_frame_number_input)
+        
+        device_layout.addRow("", self.bicycle_fields_widget)
+        self.bicycle_fields_widget.setVisible(False)  # Initially hidden
         
         self.issue_input = QTextEdit()
         self.issue_input.setPlaceholderText("Describe the issue with the device...")
@@ -928,6 +975,31 @@ class RepairDialog(QDialog):
         self.serial_number_input.setText(self.repair['serial_number'] or '')
         self.issue_input.setText(self.repair['issue_description'])
         
+        # Set bicycle fields if it's a bicycle repair
+        if 'is_bicycle' in self.repair and self.repair['is_bicycle']:
+            self.is_bicycle_checkbox.setChecked(True)
+            
+            if 'bicycle_brand' in self.repair:
+                self.bicycle_brand_input.setText(self.repair['bicycle_brand'])
+            
+            if 'bicycle_model' in self.repair:
+                self.bicycle_model_input.setText(self.repair['bicycle_model'])
+            
+            if 'bicycle_type' in self.repair:
+                type_index = self.bicycle_type_combo.findText(self.repair['bicycle_type'])
+                if type_index >= 0:
+                    self.bicycle_type_combo.setCurrentIndex(type_index)
+            
+            if 'bicycle_wheel_size' in self.repair:
+                size_index = self.bicycle_wheel_size_combo.findText(self.repair['bicycle_wheel_size'])
+                if size_index >= 0:
+                    self.bicycle_wheel_size_combo.setCurrentIndex(size_index)
+            
+            if 'bicycle_frame_number' in self.repair:
+                self.bicycle_frame_number_input.setText(self.repair['bicycle_frame_number'])
+        else:
+            self.is_bicycle_checkbox.setChecked(False)
+        
         # Load repair details
         status_index = self.status_combo.findText(self.repair['status'].replace('_', ' ').title())
         if status_index >= 0:
@@ -1012,6 +1084,22 @@ class RepairDialog(QDialog):
         # Update parts table
         self.update_parts_table()
     
+    def toggle_bicycle_fields(self, checked):
+        # Show/hide bicycle-specific fields based on checkbox state
+        self.bicycle_fields_widget.setVisible(checked)
+        
+        # If it's a bicycle repair, update the device input placeholder
+        if checked:
+            self.device_input.setPlaceholderText("e.g., Mountain Bike, Road Bike, etc.")
+            # If device field is empty, set it to "Bicycle"
+            if not self.device_input.text().strip():
+                self.device_input.setText("Bicycle")
+        else:
+            self.device_input.setPlaceholderText("e.g., iPhone 12 Pro, Samsung TV, etc.")
+            # If device field is "Bicycle", clear it
+            if self.device_input.text().strip().lower() == "bicycle":
+                self.device_input.clear()
+    
     def accept(self):
         # Validate inputs
         print(f"Validating repair form. Customer ID: {self.customer_id}")
@@ -1045,8 +1133,19 @@ class RepairDialog(QDialog):
             'assigned_to': self.technician_input.text().strip(),
             'notes': self.notes_input.toPlainText().strip(),
             'parts': self.repair_parts,
-            'estimated_cost': sum(part['quantity'] * part['cost'] for part in self.repair_parts)
+            'estimated_cost': sum(part['quantity'] * part['cost'] for part in self.repair_parts),
+            'is_bicycle': self.is_bicycle_checkbox.isChecked()
         }
+        
+        # Add bicycle-specific fields if it's a bicycle repair
+        if self.is_bicycle_checkbox.isChecked():
+            repair_data.update({
+                'bicycle_brand': self.bicycle_brand_input.text().strip(),
+                'bicycle_model': self.bicycle_model_input.text().strip(),
+                'bicycle_type': self.bicycle_type_combo.currentText(),
+                'bicycle_wheel_size': self.bicycle_wheel_size_combo.currentText(),
+                'bicycle_frame_number': self.bicycle_frame_number_input.text().strip()
+            })
         
         if self.repair_id:
             # Update existing repair

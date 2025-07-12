@@ -60,7 +60,21 @@ class DatabaseManager:
             warehouse_quantity INTEGER DEFAULT 0,
             min_stock_level INTEGER DEFAULT 5,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            -- Bicycle specific fields
+            is_bicycle BOOLEAN DEFAULT 0,
+            bicycle_brand TEXT,
+            bicycle_model TEXT,
+            bicycle_type TEXT,
+            bicycle_frame_size TEXT,
+            bicycle_wheel_size TEXT,
+            bicycle_color TEXT,
+            bicycle_frame_number TEXT,
+            -- Supplier information
+            supplier_name TEXT,
+            supplier_contact TEXT,
+            supplier_email TEXT,
+            supplier_address TEXT
         )
         ''')
         
@@ -145,6 +159,13 @@ class DatabaseManager:
             notes TEXT,
             completed_at TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            -- Bicycle specific fields
+            is_bicycle BOOLEAN DEFAULT 0,
+            bicycle_brand TEXT,
+            bicycle_model TEXT,
+            bicycle_type TEXT,
+            bicycle_wheel_size TEXT,
+            bicycle_frame_number TEXT,
             FOREIGN KEY (customer_id) REFERENCES customers (id),
             FOREIGN KEY (assigned_to) REFERENCES users (id)
         )
@@ -223,21 +244,58 @@ class DatabaseManager:
         """Add a new product to the database"""
         self.connect()
         
-        self.cursor.execute('''
-        INSERT INTO products (name, description, category, cost_price, selling_price, 
-                            max_discount, store_quantity, warehouse_quantity, min_stock_level)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            product_data['name'],
-            product_data['description'],
-            product_data['category'],
-            product_data['cost_price'],
-            product_data['selling_price'],
-            product_data['max_discount'],
-            0,  # Initial store quantity is 0
-            product_data['warehouse_quantity'],
-            product_data['min_stock_level']
-        ))
+        # Check if this is a bicycle product
+        is_bicycle = product_data.get('is_bicycle', False)
+        
+        if is_bicycle:
+            # For bicycle products, include bicycle-specific fields and supplier info
+            self.cursor.execute('''
+            INSERT INTO products (name, description, category, cost_price, selling_price, 
+                                max_discount, store_quantity, warehouse_quantity, min_stock_level,
+                                is_bicycle, bicycle_brand, bicycle_model, bicycle_type, bicycle_frame_size,
+                                bicycle_wheel_size, bicycle_color, bicycle_frame_number,
+                                supplier_name, supplier_contact, supplier_email, supplier_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                product_data['name'],
+                product_data['description'],
+                product_data['category'],
+                product_data['cost_price'],
+                product_data['selling_price'],
+                product_data['max_discount'],
+                0,  # Initial store quantity is 0
+                product_data['warehouse_quantity'],
+                product_data['min_stock_level'],
+                1,  # is_bicycle = True
+                product_data.get('bicycle_brand', ''),
+                product_data.get('bicycle_model', ''),
+                product_data.get('bicycle_type', ''),
+                product_data.get('bicycle_frame_size', ''),
+                product_data.get('bicycle_wheel_size', ''),
+                product_data.get('bicycle_color', ''),
+                product_data.get('bicycle_frame_number', ''),
+                product_data.get('supplier_name', ''),
+                product_data.get('supplier_contact', ''),
+                product_data.get('supplier_email', ''),
+                product_data.get('supplier_address', '')
+            ))
+        else:
+            # For regular products, use the original query
+            self.cursor.execute('''
+            INSERT INTO products (name, description, category, cost_price, selling_price, 
+                                max_discount, store_quantity, warehouse_quantity, min_stock_level)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                product_data['name'],
+                product_data['description'],
+                product_data['category'],
+                product_data['cost_price'],
+                product_data['selling_price'],
+                product_data['max_discount'],
+                0,  # Initial store quantity is 0
+                product_data['warehouse_quantity'],
+                product_data['min_stock_level']
+            ))
         
         product_id = self.cursor.lastrowid
         self.commit()
@@ -248,27 +306,91 @@ class DatabaseManager:
         """Update an existing product"""
         self.connect()
         
-        self.cursor.execute('''
-        UPDATE products SET 
-            name = ?,
-            description = ?,
-            category = ?,
-            cost_price = ?,
-            selling_price = ?,
-            max_discount = ?,
-            min_stock_level = ?,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-        ''', (
-            product_data['name'],
-            product_data['description'],
-            product_data['category'],
-            product_data['cost_price'],
-            product_data['selling_price'],
-            product_data['max_discount'],
-            product_data['min_stock_level'],
-            product_id
-        ))
+        # Check if this is a bicycle product
+        is_bicycle = product_data.get('is_bicycle', False)
+        
+        if is_bicycle:
+            # For bicycle products, update bicycle-specific fields and supplier info
+            self.cursor.execute('''
+            UPDATE products SET 
+                name = ?,
+                description = ?,
+                category = ?,
+                cost_price = ?,
+                selling_price = ?,
+                max_discount = ?,
+                min_stock_level = ?,
+                is_bicycle = ?,
+                bicycle_brand = ?,
+                bicycle_model = ?,
+                bicycle_type = ?,
+                bicycle_frame_size = ?,
+                bicycle_wheel_size = ?,
+                bicycle_color = ?,
+                bicycle_frame_number = ?,
+                supplier_name = ?,
+                supplier_contact = ?,
+                supplier_email = ?,
+                supplier_address = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            ''', (
+                product_data['name'],
+                product_data['description'],
+                product_data['category'],
+                product_data['cost_price'],
+                product_data['selling_price'],
+                product_data['max_discount'],
+                product_data['min_stock_level'],
+                1,  # is_bicycle = True
+                product_data.get('bicycle_brand', ''),
+                product_data.get('bicycle_model', ''),
+                product_data.get('bicycle_type', ''),
+                product_data.get('bicycle_frame_size', ''),
+                product_data.get('bicycle_wheel_size', ''),
+                product_data.get('bicycle_color', ''),
+                product_data.get('bicycle_frame_number', ''),
+                product_data.get('supplier_name', ''),
+                product_data.get('supplier_contact', ''),
+                product_data.get('supplier_email', ''),
+                product_data.get('supplier_address', ''),
+                product_id
+            ))
+        else:
+            # For regular products, use the original query
+            self.cursor.execute('''
+            UPDATE products SET 
+                name = ?,
+                description = ?,
+                category = ?,
+                cost_price = ?,
+                selling_price = ?,
+                max_discount = ?,
+                min_stock_level = ?,
+                is_bicycle = 0,
+                bicycle_brand = NULL,
+                bicycle_model = NULL,
+                bicycle_type = NULL,
+                bicycle_frame_size = NULL,
+                bicycle_wheel_size = NULL,
+                bicycle_color = NULL,
+                bicycle_frame_number = NULL,
+                supplier_name = NULL,
+                supplier_contact = NULL,
+                supplier_email = NULL,
+                supplier_address = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            ''', (
+                product_data['name'],
+                product_data['description'],
+                product_data['category'],
+                product_data['cost_price'],
+                product_data['selling_price'],
+                product_data['max_discount'],
+                product_data['min_stock_level'],
+                product_id
+            ))
         
         self.commit()
         self.close()
@@ -616,24 +738,55 @@ class DatabaseManager:
         """Create a new repair job"""
         self.connect()
         
-        self.cursor.execute('''
-        INSERT INTO repair_jobs (
-            customer_id, product_description, issue_description, 
-            status, estimated_cost, assigned_to, serial_number,
-            received_date, estimated_completion_date, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            repair_data['customer_id'],
-            repair_data['product_description'],
-            repair_data['issue_description'],
-            repair_data.get('status', 'pending'),
-            repair_data.get('estimated_cost', 0),
-            repair_data.get('assigned_to'),
-            repair_data.get('serial_number', ''),
-            repair_data.get('received_date', datetime.datetime.now().strftime('%Y-%m-%d')),
-            repair_data.get('estimated_completion_date'),
-            repair_data.get('notes', '')
-        ))
+        # Check if this is a bicycle repair
+        is_bicycle = repair_data.get('is_bicycle', 0)
+        
+        if is_bicycle:
+            self.cursor.execute('''
+            INSERT INTO repair_jobs (
+                customer_id, product_description, issue_description, 
+                status, estimated_cost, assigned_to, serial_number,
+                received_date, estimated_completion_date, notes,
+                is_bicycle, bicycle_brand, bicycle_model, bicycle_type,
+                bicycle_wheel_size, bicycle_frame_number
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                repair_data['customer_id'],
+                repair_data['product_description'],
+                repair_data['issue_description'],
+                repair_data.get('status', 'pending'),
+                repair_data.get('estimated_cost', 0),
+                repair_data.get('assigned_to'),
+                repair_data.get('serial_number', ''),
+                repair_data.get('received_date', datetime.datetime.now().strftime('%Y-%m-%d')),
+                repair_data.get('estimated_completion_date'),
+                repair_data.get('notes', ''),
+                1,  # is_bicycle = True
+                repair_data.get('bicycle_brand', ''),
+                repair_data.get('bicycle_model', ''),
+                repair_data.get('bicycle_type', ''),
+                repair_data.get('bicycle_wheel_size', ''),
+                repair_data.get('bicycle_frame_number', '')
+            ))
+        else:
+            self.cursor.execute('''
+            INSERT INTO repair_jobs (
+                customer_id, product_description, issue_description, 
+                status, estimated_cost, assigned_to, serial_number,
+                received_date, estimated_completion_date, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                repair_data['customer_id'],
+                repair_data['product_description'],
+                repair_data['issue_description'],
+                repair_data.get('status', 'pending'),
+                repair_data.get('estimated_cost', 0),
+                repair_data.get('assigned_to'),
+                repair_data.get('serial_number', ''),
+                repair_data.get('received_date', datetime.datetime.now().strftime('%Y-%m-%d')),
+                repair_data.get('estimated_completion_date'),
+                repair_data.get('notes', '')
+            ))
         
         repair_id = self.cursor.lastrowid
         
@@ -670,31 +823,74 @@ class DatabaseManager:
         self.connect()
         
         try:
-            # Update the repair job details
-            self.cursor.execute('''
-            UPDATE repair_jobs SET 
-                product_description = ?,
-                issue_description = ?,
-                estimated_cost = ?,
-                assigned_to = ?,
-                serial_number = ?,
-                status = ?,
-                received_date = ?,
-                estimated_completion_date = ?,
-                notes = ?
-            WHERE id = ?
-            ''', (
-                repair_data['product_description'],
-                repair_data['issue_description'],
-                repair_data.get('estimated_cost', 0),
-                repair_data.get('assigned_to'),
-                repair_data.get('serial_number', ''),
-                repair_data.get('status', 'pending'),
-                repair_data.get('received_date', datetime.datetime.now().strftime('%Y-%m-%d')),
-                repair_data.get('estimated_completion_date'),
-                repair_data.get('notes', ''),
-                repair_id
-            ))
+            # Check if this is a bicycle repair
+            is_bicycle = repair_data.get('is_bicycle', 0)
+            
+            if is_bicycle:
+                # Update the repair job details with bicycle fields
+                self.cursor.execute('''
+                UPDATE repair_jobs SET 
+                    product_description = ?,
+                    issue_description = ?,
+                    estimated_cost = ?,
+                    assigned_to = ?,
+                    serial_number = ?,
+                    status = ?,
+                    received_date = ?,
+                    estimated_completion_date = ?,
+                    notes = ?,
+                    is_bicycle = ?,
+                    bicycle_brand = ?,
+                    bicycle_model = ?,
+                    bicycle_type = ?,
+                    bicycle_wheel_size = ?,
+                    bicycle_frame_number = ?
+                WHERE id = ?
+                ''', (
+                    repair_data['product_description'],
+                    repair_data['issue_description'],
+                    repair_data.get('estimated_cost', 0),
+                    repair_data.get('assigned_to'),
+                    repair_data.get('serial_number', ''),
+                    repair_data.get('status', 'pending'),
+                    repair_data.get('received_date', datetime.datetime.now().strftime('%Y-%m-%d')),
+                    repair_data.get('estimated_completion_date'),
+                    repair_data.get('notes', ''),
+                    1,  # is_bicycle = True
+                    repair_data.get('bicycle_brand', ''),
+                    repair_data.get('bicycle_model', ''),
+                    repair_data.get('bicycle_type', ''),
+                    repair_data.get('bicycle_wheel_size', ''),
+                    repair_data.get('bicycle_frame_number', ''),
+                    repair_id
+                ))
+            else:
+                # Update the repair job details without bicycle fields
+                self.cursor.execute('''
+                UPDATE repair_jobs SET 
+                    product_description = ?,
+                    issue_description = ?,
+                    estimated_cost = ?,
+                    assigned_to = ?,
+                    serial_number = ?,
+                    status = ?,
+                    received_date = ?,
+                    estimated_completion_date = ?,
+                    notes = ?,
+                    is_bicycle = 0
+                WHERE id = ?
+                ''', (
+                    repair_data['product_description'],
+                    repair_data['issue_description'],
+                    repair_data.get('estimated_cost', 0),
+                    repair_data.get('assigned_to'),
+                    repair_data.get('serial_number', ''),
+                    repair_data.get('status', 'pending'),
+                    repair_data.get('received_date', datetime.datetime.now().strftime('%Y-%m-%d')),
+                    repair_data.get('estimated_completion_date'),
+                    repair_data.get('notes', ''),
+                    repair_id
+                ))
             
             # Delete existing parts for this repair
             self.cursor.execute('DELETE FROM repair_parts WHERE repair_job_id = ?', (repair_id,))
@@ -820,6 +1016,14 @@ class DatabaseManager:
             # Map fields for UI compatibility
             repair_dict['device'] = repair_dict['product_description']
             repair_dict['issue'] = repair_dict['issue_description']
+            
+            # Handle bicycle fields (they might be None if it's not a bicycle repair)
+            if 'is_bicycle' not in repair_dict or repair_dict['is_bicycle'] is None:
+                repair_dict['is_bicycle'] = False
+            else:
+                # SQLite stores booleans as integers (0 or 1)
+                repair_dict['is_bicycle'] = bool(repair_dict['is_bicycle'])
+            
             self.close()
             print(f"DB: Repair data found: {repair_dict}")
             return repair_dict
@@ -876,6 +1080,13 @@ class DatabaseManager:
         for repair in repairs:
             repair['device'] = repair['product_description']
             repair['issue'] = repair['issue_description']
+            
+            # Handle bicycle fields (they might be None if it's not a bicycle repair)
+            if 'is_bicycle' not in repair or repair['is_bicycle'] is None:
+                repair['is_bicycle'] = False
+            else:
+                # SQLite stores booleans as integers (0 or 1)
+                repair['is_bicycle'] = bool(repair['is_bicycle'])
         
         self.close()
         return repairs
@@ -897,6 +1108,13 @@ class DatabaseManager:
         for repair in repairs:
             repair['device'] = repair['product_description']
             repair['issue'] = repair['issue_description']
+            
+            # Handle bicycle fields (they might be None if it's not a bicycle repair)
+            if 'is_bicycle' not in repair or repair['is_bicycle'] is None:
+                repair['is_bicycle'] = False
+            else:
+                # SQLite stores booleans as integers (0 or 1)
+                repair['is_bicycle'] = bool(repair['is_bicycle'])
         
         self.close()
         return repairs

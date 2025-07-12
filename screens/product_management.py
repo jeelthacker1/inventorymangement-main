@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QHeaderView, QMessageBox, QDialog, QLineEdit,
                              QComboBox, QDoubleSpinBox, QSpinBox, QTabWidget,
                              QFormLayout, QDialogButtonBox, QFileDialog,
-                             QScrollArea, QGroupBox)
+                             QScrollArea, QGroupBox, QCheckBox)
 from PyQt5.QtCore import Qt, QSize, pyqtSignal, QBuffer, QByteArray, QIODevice
 from PyQt5.QtGui import QIcon, QPixmap, QFont, QColor, QImage
 import datetime
@@ -145,44 +145,46 @@ class ProductManagement(QWidget):
                 font-weight: bold;
             }
         """)
-        # Always set 9 columns for consistency, but hide cost price column for employees
-        self.products_table.setColumnCount(9)
+        # Always set 10 columns for consistency, but hide cost price column for employees
+        self.products_table.setColumnCount(10)
         self.products_table.setHorizontalHeaderLabels([
-            "ID", "Name", "Category", "Cost Price", "Selling Price", 
+            "ID", "Name", "Description", "Category", "Cost Price", "Selling Price", 
             "Store Qty", "Warehouse Qty", "Total Qty", "Actions"
         ])
         
         # Hide cost price column for employees
         if self.main_window.current_user_role != 'admin':
-            self.products_table.hideColumn(3)
+            self.products_table.hideColumn(4)  # Cost Price is now column 4
         # Set specific column widths - same for both admin and employee views
         header = self.products_table.horizontalHeader()
         
         # Set resize modes for all columns
         header.setSectionResizeMode(0, QHeaderView.Fixed)  # ID
         header.setSectionResizeMode(1, QHeaderView.Fixed)  # Name
-        header.setSectionResizeMode(2, QHeaderView.Fixed)  # Category
-        header.setSectionResizeMode(3, QHeaderView.Fixed)  # Cost Price
-        header.setSectionResizeMode(4, QHeaderView.Fixed)  # Selling Price
-        header.setSectionResizeMode(5, QHeaderView.Fixed)  # Store Qty
-        header.setSectionResizeMode(6, QHeaderView.Fixed)  # Warehouse Qty
-        header.setSectionResizeMode(7, QHeaderView.Fixed)  # Total Qty
-        header.setSectionResizeMode(8, QHeaderView.Fixed)  # Actions
+        header.setSectionResizeMode(2, QHeaderView.Fixed)  # Description
+        header.setSectionResizeMode(3, QHeaderView.Fixed)  # Category
+        header.setSectionResizeMode(4, QHeaderView.Fixed)  # Cost Price
+        header.setSectionResizeMode(5, QHeaderView.Fixed)  # Selling Price
+        header.setSectionResizeMode(6, QHeaderView.Fixed)  # Store Qty
+        header.setSectionResizeMode(7, QHeaderView.Fixed)  # Warehouse Qty
+        header.setSectionResizeMode(8, QHeaderView.Fixed)  # Total Qty
+        header.setSectionResizeMode(9, QHeaderView.Fixed)  # Actions
         
         # Set column widths
         self.products_table.setColumnWidth(0, 40)   # ID
-        self.products_table.setColumnWidth(1, 200)  # Name
-        self.products_table.setColumnWidth(2, 80)   # Category
-        self.products_table.setColumnWidth(3, 80)   # Cost Price
-        self.products_table.setColumnWidth(4, 80)   # Selling Price
-        self.products_table.setColumnWidth(5, 70)   # Store Qty
-        self.products_table.setColumnWidth(6, 90)   # Warehouse Qty
-        self.products_table.setColumnWidth(7, 70)   # Total Qty
-        self.products_table.setColumnWidth(8, 130)  # Actions
+        self.products_table.setColumnWidth(1, 150)  # Name
+        self.products_table.setColumnWidth(2, 200)  # Description
+        self.products_table.setColumnWidth(3, 80)   # Category
+        self.products_table.setColumnWidth(4, 80)   # Cost Price
+        self.products_table.setColumnWidth(5, 80)   # Selling Price
+        self.products_table.setColumnWidth(6, 70)   # Store Qty
+        self.products_table.setColumnWidth(7, 90)   # Warehouse Qty
+        self.products_table.setColumnWidth(8, 70)   # Total Qty
+        self.products_table.setColumnWidth(9, 130)  # Actions
         
-        # For employee view, make the Name column stretch to fill space
+        # For employee view, make the Description column stretch to fill space
         if self.main_window.current_user_role != 'admin':
-            header.setSectionResizeMode(1, QHeaderView.Stretch)  # Name
+            header.setSectionResizeMode(2, QHeaderView.Stretch)  # Description
         self.products_table.setAlternatingRowColors(True)
         self.products_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.products_table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -260,37 +262,111 @@ class ProductManagement(QWidget):
         
         # Common columns for both admin and employee views
         self.products_table.setItem(row, 0, QTableWidgetItem(str(product['id'])))
-        self.products_table.setItem(row, 1, QTableWidgetItem(product['name']))
-        self.products_table.setItem(row, 2, QTableWidgetItem(product.get('category', '')))
+        
+        # Product name with tooltip for bicycle details
+        name_item = QTableWidgetItem(product['name'])
+        if product.get('is_bicycle'):
+            # Create tooltip with bicycle details for both admin and employee
+            bicycle_details = []
+            if product.get('bicycle_brand'):
+                bicycle_details.append(f"Brand: {product['bicycle_brand']}")
+            if product.get('bicycle_model'):
+                bicycle_details.append(f"Model: {product['bicycle_model']}")
+            if product.get('bicycle_type'):
+                bicycle_details.append(f"Type: {product['bicycle_type']}")
+            if product.get('bicycle_frame_size'):
+                bicycle_details.append(f"Frame Size: {product['bicycle_frame_size']}")
+            if product.get('bicycle_wheel_size'):
+                bicycle_details.append(f"Wheel Size: {product['bicycle_wheel_size']}")
+            if product.get('bicycle_color'):
+                bicycle_details.append(f"Color: {product['bicycle_color']}")
+            if product.get('bicycle_frame_number'):
+                bicycle_details.append(f"Frame Number: {product['bicycle_frame_number']}")
+            
+            # Add supplier info to tooltip for admin only
+            if is_admin:
+                if product.get('supplier_name'):
+                    bicycle_details.append(f"\nSupplier: {product['supplier_name']}")
+                if product.get('supplier_contact'):
+                    bicycle_details.append(f"Contact: {product['supplier_contact']}")
+                if product.get('supplier_email'):
+                    bicycle_details.append(f"Email: {product['supplier_email']}")
+                if product.get('supplier_address'):
+                    bicycle_details.append(f"Address: {product['supplier_address']}")
+            
+            # Set tooltip with all details
+            name_item.setToolTip("\n".join(bicycle_details))
+            
+            # For both admin and employee, add bicycle details to the name
+            # This makes bicycle details visible in the table for all users
+            bicycle_info = []
+            if product.get('bicycle_brand'):
+                bicycle_info.append(product['bicycle_brand'])
+            if product.get('bicycle_model'):
+                bicycle_info.append(product['bicycle_model'])
+            
+            if bicycle_info:
+                name_item.setText(f"{product['name']} ({' - '.join(bicycle_info)})")
+            
+            # Set a visual indicator that this is a bicycle product
+            font = name_item.font()
+            font.setBold(True)
+            name_item.setFont(font)
+        
+        self.products_table.setItem(row, 1, name_item)
+        
+        # Add description with bicycle details for employees
+        description_text = product.get('description', '')
+        if product.get('is_bicycle'):
+            bicycle_details = []
+            if product.get('bicycle_type'):
+                bicycle_details.append(f"Type: {product['bicycle_type']}")
+            if product.get('bicycle_frame_size'):
+                bicycle_details.append(f"Size: {product['bicycle_frame_size']}")
+            if product.get('bicycle_color'):
+                bicycle_details.append(f"Color: {product['bicycle_color']}")
+            if product.get('bicycle_frame_number'):
+                bicycle_details.append(f"Frame#: {product['bicycle_frame_number']}")
+            
+            if bicycle_details and description_text:
+                description_text += " | " + " | ".join(bicycle_details)
+            elif bicycle_details:
+                description_text = " | ".join(bicycle_details)
+        
+        # Set the description item in the category column
+        self.products_table.setItem(row, 2, QTableWidgetItem(description_text))
+        
+        # Set the category in the category column
+        self.products_table.setItem(row, 3, QTableWidgetItem(product.get('category', '')))
 
-        # Column 3: Cost Price (hidden for employees)
+        # Column 4: Cost Price (hidden for employees)
         cost_price_item = QTableWidgetItem(f"₹{product['cost_price']:.2f}")
         cost_price_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.products_table.setItem(row, 3, cost_price_item)
+        self.products_table.setItem(row, 4, cost_price_item)
         
-        # Column 4: Selling Price
+        # Column 5: Selling Price
         selling_price_item = QTableWidgetItem(f"₹{product['selling_price']:.2f}")
         selling_price_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.products_table.setItem(row, 4, selling_price_item)
+        self.products_table.setItem(row, 5, selling_price_item)
         
-        # Column 5: Store Quantity
+        # Column 6: Store Quantity
         store_qty_item = QTableWidgetItem(str(product['store_quantity']))
         if product['store_quantity'] < product['min_stock_level']:
             store_qty_item.setForeground(QColor('#e74c3c'))
-        self.products_table.setItem(row, 5, store_qty_item)
+        self.products_table.setItem(row, 6, store_qty_item)
         
-        # Column 6: Warehouse Quantity
+        # Column 7: Warehouse Quantity
         warehouse_qty_item = QTableWidgetItem(str(product['warehouse_quantity']))
-        self.products_table.setItem(row, 6, warehouse_qty_item)
+        self.products_table.setItem(row, 7, warehouse_qty_item)
         
-        # Column 7: Total Quantity
+        # Column 8: Total Quantity
         total_qty = product['store_quantity'] + product['warehouse_quantity']
         total_qty_item = QTableWidgetItem(str(total_qty))
-        self.products_table.setItem(row, 7, total_qty_item)
+        self.products_table.setItem(row, 8, total_qty_item)
         
-        # Column 8: Actions - same for both admin and employee views
+        # Column 9: Actions - same for both admin and employee views
         actions_widget = self.create_actions_widget(product['id'])
-        self.products_table.setCellWidget(row, 8, actions_widget)
+        self.products_table.setCellWidget(row, 9, actions_widget)
     
     def create_actions_widget(self, product_id):
         # Create actions widget with edit and quantity buttons
@@ -384,7 +460,7 @@ class ProductDialog(QDialog):
         
         if product_id:
             self.product = self.main_window.db_manager.get_product(product_id)
-            self.setWindowTitle("Edit Product")
+            self.setWindowTitle(f"Edit Product: {self.product['name']}")
         else:
             self.setWindowTitle("Add New Product")
         
@@ -392,7 +468,7 @@ class ProductDialog(QDialog):
         self.load_product_data()
     
     def init_ui(self):
-        self.setMinimumWidth(500)
+        self.setMinimumWidth(700)
         
         # Main layout
         main_layout = QVBoxLayout(self)
@@ -465,7 +541,105 @@ class ProductDialog(QDialog):
             self.warehouse_qty_input.setSingleStep(1)
             form_layout.addRow("Initial Warehouse Qty:", self.warehouse_qty_input)
         
+        # Bicycle product checkbox
+        self.is_bicycle_checkbox = QCheckBox("This is a bicycle product")
+        self.is_bicycle_checkbox.stateChanged.connect(self.toggle_bicycle_fields)
+        form_layout.addRow("", self.is_bicycle_checkbox)
+        
         main_layout.addLayout(form_layout)
+        
+        # Create a tab widget for additional fields
+        self.tabs = QTabWidget()
+        
+        # Bicycle details tab
+        self.bicycle_tab = QWidget()
+        bicycle_layout = QFormLayout(self.bicycle_tab)
+        
+        # Bicycle brand
+        self.bicycle_brand_input = QLineEdit()
+        self.bicycle_brand_input.setPlaceholderText("Enter bicycle brand")
+        bicycle_layout.addRow("Brand:", self.bicycle_brand_input)
+        
+        # Bicycle model
+        self.bicycle_model_input = QLineEdit()
+        self.bicycle_model_input.setPlaceholderText("Enter bicycle model")
+        bicycle_layout.addRow("Model:", self.bicycle_model_input)
+        
+        # Bicycle type
+        self.bicycle_type_input = QComboBox()
+        self.bicycle_type_input.addItems(["Mountain", "Road", "Hybrid", "City", "BMX", "Kids", "Electric", "Other"])
+        bicycle_layout.addRow("Type:", self.bicycle_type_input)
+        
+        # Bicycle frame size
+        self.bicycle_frame_size_input = QLineEdit()
+        self.bicycle_frame_size_input.setPlaceholderText("Enter frame size (e.g., S, M, L, XL or inches)")
+        bicycle_layout.addRow("Frame Size:", self.bicycle_frame_size_input)
+        
+        # Bicycle wheel size
+        self.bicycle_wheel_size_input = QLineEdit()
+        self.bicycle_wheel_size_input.setPlaceholderText("Enter wheel size (e.g., 26\", 27.5\", 29\")")
+        bicycle_layout.addRow("Wheel Size:", self.bicycle_wheel_size_input)
+        
+        # Bicycle color
+        self.bicycle_color_input = QLineEdit()
+        self.bicycle_color_input.setPlaceholderText("Enter bicycle color")
+        bicycle_layout.addRow("Color:", self.bicycle_color_input)
+        
+        # Bicycle frame number
+        self.bicycle_frame_number_input = QLineEdit()
+        self.bicycle_frame_number_input.setPlaceholderText("Enter frame number/serial number")
+        bicycle_layout.addRow("Frame Number:", self.bicycle_frame_number_input)
+        
+        # Supplier information tab (admin only)
+        self.supplier_tab = QWidget()
+        supplier_layout = QFormLayout(self.supplier_tab)
+        
+        # Supplier selection (for admin only)
+        if self.main_window.current_user_role == 'admin':
+            # Create a layout for supplier selection
+            supplier_selection_layout = QHBoxLayout()
+            
+            # Create a combobox for existing suppliers
+            self.supplier_select = QComboBox()
+            self.supplier_select.setPlaceholderText("Select existing supplier")
+            self.supplier_select.addItem("New Supplier", None)
+            self.load_suppliers()
+            self.supplier_select.currentIndexChanged.connect(self.on_supplier_selected)
+            supplier_selection_layout.addWidget(self.supplier_select)
+            
+            supplier_layout.addRow("Select Supplier:", self.supplier_select)
+        
+        # Supplier name
+        self.supplier_name_input = QLineEdit()
+        self.supplier_name_input.setPlaceholderText("Enter supplier name")
+        supplier_layout.addRow("Supplier Name:", self.supplier_name_input)
+        
+        # Supplier contact
+        self.supplier_contact_input = QLineEdit()
+        self.supplier_contact_input.setPlaceholderText("Enter supplier contact number")
+        supplier_layout.addRow("Contact Number:", self.supplier_contact_input)
+        
+        # Supplier email
+        self.supplier_email_input = QLineEdit()
+        self.supplier_email_input.setPlaceholderText("Enter supplier email")
+        supplier_layout.addRow("Email:", self.supplier_email_input)
+        
+        # Supplier address
+        self.supplier_address_input = QLineEdit()
+        self.supplier_address_input.setPlaceholderText("Enter supplier address")
+        supplier_layout.addRow("Address:", self.supplier_address_input)
+        
+        # Add tabs to tab widget
+        self.tabs.addTab(self.bicycle_tab, "Bicycle Details")
+        
+        # Only show supplier tab to admin
+        if self.main_window.current_user_role == 'admin':
+            self.tabs.addTab(self.supplier_tab, "Supplier Information")
+        
+        # Initially hide the tabs until bicycle checkbox is checked
+        self.tabs.setVisible(False)
+        
+        main_layout.addWidget(self.tabs)
         
         # Buttons
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -474,6 +648,10 @@ class ProductDialog(QDialog):
         
         main_layout.addSpacing(20)
         main_layout.addWidget(button_box)
+        
+    def toggle_bicycle_fields(self, state):
+        # Show/hide bicycle fields based on checkbox state
+        self.tabs.setVisible(state == Qt.Checked)
     
     def load_categories(self):
         # Get all products to extract categories
@@ -488,6 +666,48 @@ class ProductDialog(QDialog):
         # Add categories to combobox
         for category in sorted(categories):
             self.category_input.addItem(category)
+    
+    def load_suppliers(self):
+        # Get all products to extract unique suppliers
+        products = self.main_window.db_manager.get_all_products()
+        
+        # Extract unique suppliers
+        suppliers = {}
+        for product in products:
+            if product.get('supplier_name') and product['supplier_name'].strip():
+                # Create a unique key for each supplier
+                supplier_key = product['supplier_name'].strip()
+                if supplier_key not in suppliers:
+                    suppliers[supplier_key] = {
+                        'name': product['supplier_name'],
+                        'contact': product.get('supplier_contact', ''),
+                        'email': product.get('supplier_email', ''),
+                        'address': product.get('supplier_address', '')
+                    }
+        
+        # Add suppliers to combobox
+        for supplier_name, supplier_data in sorted(suppliers.items()):
+            # Store the supplier data as user data in the combobox
+            self.supplier_select.addItem(supplier_name, supplier_data)
+    
+    def on_supplier_selected(self, index):
+        # Skip the first item ("New Supplier")
+        if index == 0:
+            # Clear all supplier fields
+            self.supplier_name_input.clear()
+            self.supplier_contact_input.clear()
+            self.supplier_email_input.clear()
+            self.supplier_address_input.clear()
+            return
+        
+        # Get the selected supplier data
+        supplier_data = self.supplier_select.itemData(index)
+        if supplier_data:
+            # Fill the supplier fields with the selected supplier data
+            self.supplier_name_input.setText(supplier_data['name'])
+            self.supplier_contact_input.setText(supplier_data['contact'])
+            self.supplier_email_input.setText(supplier_data['email'])
+            self.supplier_address_input.setText(supplier_data['address'])
     
     def load_product_data(self):
         if not self.product:
@@ -512,6 +732,40 @@ class ProductDialog(QDialog):
         self.selling_price_input.setValue(self.product['selling_price'])
         self.max_discount_input.setValue(self.product['max_discount'])
         self.min_stock_input.setValue(self.product['min_stock_level'])
+        
+        # Check if this is a bicycle product
+        if self.product.get('is_bicycle'):
+            self.is_bicycle_checkbox.setChecked(True)
+            self.toggle_bicycle_fields(Qt.Checked)
+            
+            # Fill bicycle details
+            if self.product.get('bicycle_brand'):
+                self.bicycle_brand_input.setText(self.product['bicycle_brand'])
+            if self.product.get('bicycle_model'):
+                self.bicycle_model_input.setText(self.product['bicycle_model'])
+            if self.product.get('bicycle_type'):
+                index = self.bicycle_type_input.findText(self.product['bicycle_type'])
+                if index >= 0:
+                    self.bicycle_type_input.setCurrentIndex(index)
+            if self.product.get('bicycle_frame_size'):
+                self.bicycle_frame_size_input.setText(self.product['bicycle_frame_size'])
+            if self.product.get('bicycle_wheel_size'):
+                self.bicycle_wheel_size_input.setText(self.product['bicycle_wheel_size'])
+            if self.product.get('bicycle_color'):
+                self.bicycle_color_input.setText(self.product['bicycle_color'])
+            if self.product.get('bicycle_frame_number'):
+                self.bicycle_frame_number_input.setText(self.product['bicycle_frame_number'])
+            
+            # Fill supplier information (admin only)
+            if self.main_window.current_user_role == 'admin':
+                if self.product.get('supplier_name'):
+                    self.supplier_name_input.setText(self.product['supplier_name'])
+                if self.product.get('supplier_contact'):
+                    self.supplier_contact_input.setText(self.product['supplier_contact'])
+                if self.product.get('supplier_email'):
+                    self.supplier_email_input.setText(self.product['supplier_email'])
+                if self.product.get('supplier_address'):
+                    self.supplier_address_input.setText(self.product['supplier_address'])
     
     def accept(self):
         # Validate inputs
@@ -538,6 +792,27 @@ class ProductDialog(QDialog):
             'max_discount': self.max_discount_input.value(),
             'min_stock_level': self.min_stock_input.value()
         }
+        
+        # Check if this is a bicycle product
+        is_bicycle = self.is_bicycle_checkbox.isChecked()
+        product_data['is_bicycle'] = is_bicycle
+        
+        if is_bicycle:
+            # Add bicycle-specific fields
+            product_data['bicycle_brand'] = self.bicycle_brand_input.text().strip()
+            product_data['bicycle_model'] = self.bicycle_model_input.text().strip()
+            product_data['bicycle_type'] = self.bicycle_type_input.currentText().strip()
+            product_data['bicycle_frame_size'] = self.bicycle_frame_size_input.text().strip()
+            product_data['bicycle_wheel_size'] = self.bicycle_wheel_size_input.text().strip()
+            product_data['bicycle_color'] = self.bicycle_color_input.text().strip()
+            product_data['bicycle_frame_number'] = self.bicycle_frame_number_input.text().strip()
+            
+            # Add supplier information (admin only)
+            if self.main_window.current_user_role == 'admin':
+                product_data['supplier_name'] = self.supplier_name_input.text().strip()
+                product_data['supplier_contact'] = self.supplier_contact_input.text().strip()
+                product_data['supplier_email'] = self.supplier_email_input.text().strip()
+                product_data['supplier_address'] = self.supplier_address_input.text().strip()
         
         if self.product_id:
             # Update existing product

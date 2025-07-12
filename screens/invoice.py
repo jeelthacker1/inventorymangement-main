@@ -141,9 +141,13 @@ class InvoiceScreen(QWidget):
         options_layout = QHBoxLayout(options_frame)
         
         # GST option
-        self.include_gst_checkbox = QCheckBox("Include GST (18%)")
+        self.include_gst_checkbox = QCheckBox("Include GST in Invoice")
         self.include_gst_checkbox.setChecked(True)  # Default to include GST
         self.include_gst_checkbox.stateChanged.connect(self.update_invoice_preview)
+        self.include_gst_checkbox.stateChanged.connect(self.update_gst_and_bill_text)
+        self.include_gst_checkbox.stateChanged.connect(self.update_gst_note)
+        self.include_gst_checkbox.setStyleSheet("font-weight: bold; color: #3498db;")
+        self.include_gst_checkbox.setToolTip("Check to include GST calculation in the invoice, uncheck to exclude GST")
         
         # Invoice date
         date_layout = QHBoxLayout()
@@ -221,9 +225,13 @@ class InvoiceScreen(QWidget):
         options_layout = QHBoxLayout(options_frame)
         
         # GST option
-        self.include_gst_checkbox = QCheckBox("Include GST (18%)")
+        self.include_gst_checkbox = QCheckBox("Include GST in Invoice")
         self.include_gst_checkbox.setChecked(True)  # Default to include GST
         self.include_gst_checkbox.stateChanged.connect(self.update_invoice_preview)
+        self.include_gst_checkbox.stateChanged.connect(self.update_gst_and_bill_text)
+        self.include_gst_checkbox.stateChanged.connect(self.update_gst_note)
+        self.include_gst_checkbox.setStyleSheet("font-weight: bold; color: #3498db;")
+        self.include_gst_checkbox.setToolTip("Check to include GST calculation in the invoice, uncheck to exclude GST")
         
         # Invoice date
         date_layout = QHBoxLayout()
@@ -352,6 +360,27 @@ class InvoiceScreen(QWidget):
         self.invoice_date = self.invoice_date_edit.date().toString('yyyy-MM-dd')
         self.update_invoice_preview()
     
+    def update_gst_and_bill_text(self):
+        subtotal = sum(item['total'] for item in self.invoice_items)
+        include_gst = self.include_gst_checkbox.isChecked()
+        gst_rate = 12.0
+        gst_amount = subtotal * (gst_rate / 100) if include_gst else 0
+        total = subtotal + gst_amount
+        rounded_total = round(total)
+        
+        if include_gst:
+            self.total_gst_text.setText(f"Total GST: {self.number_to_words(gst_amount)}")
+        else:
+            self.total_gst_text.setText("Total GST: Not Applicable")
+            
+        self.bill_amount_text.setText(f"Bill Amount: {self.number_to_words(rounded_total)}")
+    
+    def update_gst_note(self):
+        if self.include_gst_checkbox.isChecked():
+            self.gst_note_label.setText("GST is included in the invoice amount.")
+        else:
+            self.gst_note_label.setText("GST is not applicable for this invoice.")
+    
     def update_invoice_preview(self):
         # Check if invoice_preview_layout exists
         if not hasattr(self, 'invoice_preview_layout'):
@@ -365,41 +394,53 @@ class InvoiceScreen(QWidget):
             if widget is not None:
                 widget.deleteLater()
         
-        # Shop information - Header
+        # Shop information - Header with modern styling
         shop_info_layout = QVBoxLayout()
+        
+        # Create a header frame with background
+        header_frame = QFrame()
+        header_frame.setStyleSheet("background-color: #3498db; border-radius: 8px; padding: 15px; margin-bottom: 10px;")
+        header_layout = QVBoxLayout(header_frame)
         
         # Shop name in large font
         shop_name = QLabel("K BICYCLE")
-        shop_name.setStyleSheet("font-size: 28px; font-weight: bold; color: #000000; text-align: center;")
+        shop_name.setStyleSheet("font-size: 32px; font-weight: bold; color: white; text-align: center;")
         shop_name.setAlignment(Qt.AlignCenter)
-        shop_info_layout.addWidget(shop_name)
+        header_layout.addWidget(shop_name)
         
         # Shop address
-        shop_address = QLabel("123 Main Street, City, State, ZIP")
-        shop_address.setStyleSheet("font-size: 12px; color: #333333; text-align: center;")
+        shop_address = QLabel("SHOP NO 1/2, TRUST MARBLE COMPLEX, MADHAPAR (370020)")
+        shop_address.setStyleSheet("font-size: 14px; color: white; text-align: center;")
         shop_address.setAlignment(Qt.AlignCenter)
-        shop_info_layout.addWidget(shop_address)
+        header_layout.addWidget(shop_address)
         
         # Shop contact
-        shop_contact = QLabel("Phone: (123) 456-7890 | Email: info@kbicycle.com")
-        shop_contact.setStyleSheet("font-size: 12px; color: #333333; text-align: center;")
+        shop_contact = QLabel("Phone: (123) 456-7890 | Email: info@kbicycle.com | GST: 12ABCDE1234F1Z5")
+        shop_contact.setStyleSheet("font-size: 14px; color: white; text-align: center;")
         shop_contact.setAlignment(Qt.AlignCenter)
-        shop_info_layout.addWidget(shop_contact)
+        header_layout.addWidget(shop_contact)
         
+        shop_info_layout.addWidget(header_frame)
         self.invoice_preview_layout.addLayout(shop_info_layout)
         
         # Add a separator
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         separator.setFrameShadow(QFrame.Sunken)
-        separator.setStyleSheet("background-color: #cccccc;")
+        separator.setStyleSheet("background-color: #3498db; height: 2px;")
         self.invoice_preview_layout.addWidget(separator)
         
-        # Tax Invoice Header
+        # Tax Invoice Header with modern styling
+        tax_invoice_frame = QFrame()
+        tax_invoice_frame.setStyleSheet("background-color: #3498db; border-radius: 8px; padding: 10px; margin: 10px 0;")
+        tax_invoice_layout = QVBoxLayout(tax_invoice_frame)
+        
         tax_invoice_label = QLabel("TAX INVOICE")
-        tax_invoice_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #000000; text-align: center;")
+        tax_invoice_label.setStyleSheet("font-size: 20px; font-weight: bold; color: white; text-align: center;")
         tax_invoice_label.setAlignment(Qt.AlignCenter)
-        self.invoice_preview_layout.addWidget(tax_invoice_label)
+        tax_invoice_layout.addWidget(tax_invoice_label)
+        
+        self.invoice_preview_layout.addWidget(tax_invoice_frame)
         
         # Memo details (Invoice number, date, etc.)
         memo_details = QHBoxLayout()
@@ -495,20 +536,31 @@ class InvoiceScreen(QWidget):
         separator2.setStyleSheet("background-color: #cccccc;")
         self.invoice_preview_layout.addWidget(separator2)
         
-        # Items table
+        # Items table with modern styling
         items_table = QTableWidget()
         items_table.setColumnCount(6)
         items_table.setHorizontalHeaderLabels(["#", "Item", "Qty", "Price", "Discount", "Total"])
         items_table.setStyleSheet("""
             QTableWidget {
-                border: 1px solid #cccccc;
-                gridline-color: #cccccc;
+                border: 1px solid #e0e0e0;
+                border-radius: 5px;
+                background-color: #ffffff;
+                gridline-color: #e0e0e0;
             }
             QHeaderView::section {
-                background-color: #f0f0f0;
-                padding: 5px;
-                border: 1px solid #cccccc;
+                background-color: #3498db;
+                color: white;
+                padding: 8px;
+                border: none;
                 font-weight: bold;
+            }
+            QTableWidget::item {
+                padding: 4px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            QTableWidget::item:selected {
+                background-color: #e8f4fc;
+                color: #333333;
             }
         """)
         
@@ -561,9 +613,21 @@ class InvoiceScreen(QWidget):
         
         self.invoice_preview_layout.addWidget(items_table)
         
-        # Amount section
-        amount_section = QVBoxLayout()
-        amount_section.setContentsMargins(0, 10, 0, 0)
+        # Amount section with modern styling
+        amount_frame = QFrame()
+        amount_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #e0e0e0;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QLabel {
+                padding: 5px;
+            }
+        """)
+        amount_section = QVBoxLayout(amount_frame)
+        amount_section.setContentsMargins(10, 15, 10, 15)
         
         # Subtotal
         subtotal_layout = QHBoxLayout()
@@ -584,7 +648,9 @@ class InvoiceScreen(QWidget):
         
         # GST calculation
         gst_amount = 0
-        if self.include_gst_checkbox.isChecked():
+        include_gst = self.include_gst_checkbox.isChecked()
+        
+        if include_gst:
             gst_amount = subtotal * 0.18
             
             # CGST (9%)
@@ -624,30 +690,30 @@ class InvoiceScreen(QWidget):
         # Total
         total_amount = subtotal + gst_amount
         
-        # Add a separator
+        # Add a separator with improved styling
         total_separator = QFrame()
         total_separator.setFrameShape(QFrame.HLine)
         total_separator.setFrameShadow(QFrame.Sunken)
-        total_separator.setStyleSheet("background-color: #cccccc;")
+        total_separator.setStyleSheet("background-color: #3498db; height: 2px; margin: 10px 0;")
         amount_section.addWidget(total_separator)
         
         total_layout = QHBoxLayout()
         total_layout.addStretch()
         
         total_label = QLabel("Total:")
-        total_label.setStyleSheet("font-weight: bold; font-size: 16px; text-align: right;")
+        total_label.setStyleSheet("font-weight: bold; font-size: 18px; color: #3498db; text-align: right;")
         total_label.setFixedWidth(150)
         total_layout.addWidget(total_label)
         
         total_value = QLabel(f"₹{total_amount:.2f}")
-        total_value.setStyleSheet("font-weight: bold; font-size: 16px; text-align: right;")
+        total_value.setStyleSheet("font-weight: bold; font-size: 18px; color: #3498db; text-align: right;")
         total_value.setFixedWidth(100)
         total_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         total_layout.addWidget(total_value)
         
         amount_section.addLayout(total_layout)
         
-        self.invoice_preview_layout.addLayout(amount_section)
+        self.invoice_preview_layout.addWidget(amount_frame)
         
         # Payment information
         if self.repair_data and 'payment_method' in self.repair_data:
@@ -655,10 +721,22 @@ class InvoiceScreen(QWidget):
             payment_info.setStyleSheet("margin-top: 20px;")
             self.invoice_preview_layout.addWidget(payment_info)
         
-        # Terms and conditions
+        # Terms and conditions with modern styling
+        terms_frame = QFrame()
+        terms_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #e0e0e0;
+                border-radius: 5px;
+                margin-top: 20px;
+                padding: 10px;
+            }
+        """)
+        terms_layout = QVBoxLayout(terms_frame)
+        
         terms_label = QLabel("Terms and Conditions:")
-        terms_label.setStyleSheet("font-weight: bold; margin-top: 20px;")
-        self.invoice_preview_layout.addWidget(terms_label)
+        terms_label.setStyleSheet("font-weight: bold; color: #3498db;")
+        terms_layout.addWidget(terms_label)
         
         terms_text = QLabel("""
         1. All items come with a 30-day warranty unless otherwise specified.
@@ -668,10 +746,27 @@ class InvoiceScreen(QWidget):
         5. Thank you for your business!
         """)
         terms_text.setWordWrap(True)
-        self.invoice_preview_layout.addWidget(terms_text)
+        terms_text.setStyleSheet("color: #555555; line-height: 1.4;")
+        terms_layout.addWidget(terms_text)
         
-        # Signature section
-        signature_layout = QHBoxLayout()
+        self.invoice_preview_layout.addWidget(terms_frame)
+        
+        # Signature section with modern styling
+        signature_frame = QFrame()
+        signature_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #e0e0e0;
+                border-radius: 5px;
+                margin-top: 20px;
+                padding: 15px;
+            }
+            QLabel {
+                color: #3498db;
+                font-weight: bold;
+            }
+        """)
+        signature_layout = QHBoxLayout(signature_frame)
         
         customer_signature = QVBoxLayout()
         customer_sig_label = QLabel("Customer Signature")
@@ -681,6 +776,7 @@ class InvoiceScreen(QWidget):
         customer_sig_line = QFrame()
         customer_sig_line.setFrameShape(QFrame.HLine)
         customer_sig_line.setFrameShadow(QFrame.Sunken)
+        customer_sig_line.setStyleSheet("background-color: #3498db; height: 2px; margin-top: 50px;")
         customer_signature.addWidget(customer_sig_line)
         
         shop_signature = QVBoxLayout()
@@ -691,20 +787,34 @@ class InvoiceScreen(QWidget):
         shop_sig_line = QFrame()
         shop_sig_line.setFrameShape(QFrame.HLine)
         shop_sig_line.setFrameShadow(QFrame.Sunken)
+        shop_sig_line.setStyleSheet("background-color: #3498db; height: 2px; margin-top: 50px;")
         shop_signature.addWidget(shop_sig_line)
         
         signature_layout.addLayout(customer_signature)
         signature_layout.addSpacing(50)
         signature_layout.addLayout(shop_signature)
         
-        self.invoice_preview_layout.addSpacing(30)
-        self.invoice_preview_layout.addLayout(signature_layout)
+        self.invoice_preview_layout.addSpacing(10)
+        self.invoice_preview_layout.addWidget(signature_frame)
         
-        # Footer
+        # Footer with modern styling
+        footer_frame = QFrame()
+        footer_frame.setStyleSheet("""
+            QFrame {
+                background-color: #3498db;
+                border-radius: 5px;
+                margin-top: 20px;
+                padding: 10px;
+            }
+        """)
+        footer_layout = QVBoxLayout(footer_frame)
+        
         footer = QLabel("Thank you for your business!")
-        footer.setStyleSheet("font-weight: bold; text-align: center; margin-top: 20px;")
+        footer.setStyleSheet("font-weight: bold; color: white; font-size: 14px;")
         footer.setAlignment(Qt.AlignCenter)
-        self.invoice_preview_layout.addWidget(footer)
+        footer_layout.addWidget(footer)
+        
+        self.invoice_preview_layout.addWidget(footer_frame)
     
     def get_invoice_html(self):
         # Create HTML content for the invoice
@@ -883,6 +993,27 @@ class InvoiceScreen(QWidget):
         self.invoice_date = self.invoice_date_edit.date().toString('yyyy-MM-dd')
         self.update_invoice_preview()
         
+    def update_gst_and_bill_text(self):
+        subtotal = sum(item['total'] for item in self.invoice_items)
+        include_gst = self.include_gst_checkbox.isChecked()
+        gst_rate = 12.0
+        gst_amount = subtotal * (gst_rate / 100) if include_gst else 0
+        total = subtotal + gst_amount
+        rounded_total = round(total)
+        
+        if include_gst:
+            self.total_gst_text.setText(f"Total GST: {self.number_to_words(gst_amount)}")
+        else:
+            self.total_gst_text.setText("Total GST: Not Applicable")
+            
+        self.bill_amount_text.setText(f"Bill Amount: {self.number_to_words(rounded_total)}")
+    
+    def update_gst_note(self):
+        if self.include_gst_checkbox.isChecked():
+            self.gst_note_label.setText("GST is included in the invoice amount.")
+        else:
+            self.gst_note_label.setText("GST is not applicable for this invoice.")
+    
     def update_invoice_preview(self):
         # Check if invoice_preview_layout exists
         if not hasattr(self, 'invoice_preview_layout'):
@@ -896,41 +1027,53 @@ class InvoiceScreen(QWidget):
             if widget is not None:
                 widget.deleteLater()
         
-        # Shop information - Header
+        # Shop information - Header with modern styling
         shop_info_layout = QVBoxLayout()
+        
+        # Create a header frame with background
+        header_frame = QFrame()
+        header_frame.setStyleSheet("background-color: #3498db; border-radius: 8px; padding: 15px; margin-bottom: 10px;")
+        header_layout = QVBoxLayout(header_frame)
         
         # Shop name in large font
         shop_name = QLabel("K BICYCLE")
-        shop_name.setStyleSheet("font-size: 28px; font-weight: bold; color: #000000; text-align: center;")
+        shop_name.setStyleSheet("font-size: 32px; font-weight: bold; color: white; text-align: center;")
         shop_name.setAlignment(Qt.AlignCenter)
-        shop_info_layout.addWidget(shop_name)
+        header_layout.addWidget(shop_name)
         
         # Shop address
-        shop_address = QLabel("123 Main Street, City, State, ZIP")
-        shop_address.setStyleSheet("font-size: 12px; color: #333333; text-align: center;")
+        shop_address = QLabel("SHOP NO 1/2, TRUST MARBLE COMPLEX, MADHAPAR (370020)")
+        shop_address.setStyleSheet("font-size: 14px; color: white; text-align: center;")
         shop_address.setAlignment(Qt.AlignCenter)
-        shop_info_layout.addWidget(shop_address)
+        header_layout.addWidget(shop_address)
         
         # Shop contact
-        shop_contact = QLabel("Phone: (123) 456-7890 | Email: info@kbicycle.com")
-        shop_contact.setStyleSheet("font-size: 12px; color: #333333; text-align: center;")
+        shop_contact = QLabel("Phone: (123) 456-7890 | Email: info@kbicycle.com | GST: 12ABCDE1234F1Z5")
+        shop_contact.setStyleSheet("font-size: 14px; color: white; text-align: center;")
         shop_contact.setAlignment(Qt.AlignCenter)
-        shop_info_layout.addWidget(shop_contact)
+        header_layout.addWidget(shop_contact)
         
+        shop_info_layout.addWidget(header_frame)
         self.invoice_preview_layout.addLayout(shop_info_layout)
         
         # Add a separator
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         separator.setFrameShadow(QFrame.Sunken)
-        separator.setStyleSheet("background-color: #cccccc;")
+        separator.setStyleSheet("background-color: #3498db; height: 2px;")
         self.invoice_preview_layout.addWidget(separator)
         
-        # Tax Invoice Header
-        tax_invoice_label = QLabel("REPAIR INVOICE")
-        tax_invoice_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #000000; text-align: center;")
+        # Tax Invoice Header with modern styling
+        tax_invoice_frame = QFrame()
+        tax_invoice_frame.setStyleSheet("background-color: #2c3e50; border-radius: 8px; padding: 12px; margin: 10px 0;")
+        tax_invoice_layout = QVBoxLayout(tax_invoice_frame)
+        
+        tax_invoice_label = QLabel("TAX INVOICE")
+        tax_invoice_label.setStyleSheet("font-size: 22px; font-weight: bold; color: white; text-align: center;")
         tax_invoice_label.setAlignment(Qt.AlignCenter)
-        self.invoice_preview_layout.addWidget(tax_invoice_label)
+        tax_invoice_layout.addWidget(tax_invoice_label)
+        
+        self.invoice_preview_layout.addWidget(tax_invoice_frame)
         
         # Memo details (Invoice number, date, etc.)
         memo_details = QHBoxLayout()
@@ -1026,7 +1169,7 @@ class InvoiceScreen(QWidget):
         separator2.setStyleSheet("background-color: #cccccc;")
         self.invoice_preview_layout.addWidget(separator2)
         
-        # Items table
+        # Items table with enhanced styling
         items_table = QTableWidget()
         items_table.setColumnCount(6)
         items_table.setHorizontalHeaderLabels(["Item", "Description", "Qty", "Rate", "GST", "Amount"])
@@ -1034,15 +1177,25 @@ class InvoiceScreen(QWidget):
         items_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         items_table.setStyleSheet("""
             QTableWidget {
-                border: 1px solid #e0e0e0;
-                gridline-color: #e0e0e0;
+                border: 1px solid #2c3e50;
+                gridline-color: #bdc3c7;
                 background-color: white;
+                border-radius: 4px;
             }
             QHeaderView::section {
-                background-color: #f0f0f0;
-                padding: 5px;
-                border: 1px solid #e0e0e0;
+                background-color: #2c3e50;
+                color: white;
+                padding: 8px;
+                border: none;
                 font-weight: bold;
+                font-size: 13px;
+            }
+            QTableWidget::item {
+                padding: 5px;
+                border-bottom: 1px solid #ecf0f1;
+            }
+            QTableWidget::item:selected {
+                background-color: #e3f2fd;
             }
         """)
         
@@ -1074,15 +1227,15 @@ class InvoiceScreen(QWidget):
             item_price = item['price'] * item['quantity']
             gst_amount = 0
             if include_gst:
-                # GST is 18% of the price
-                gst_amount = item_price * 0.18
+                # GST is 12% of the price (consistent with InvoiceScreen)
+                gst_amount = item_price * 0.12
                 total_tax += gst_amount
                 gst_item = QTableWidgetItem(f"₹{gst_amount:.2f}")
             else:
-                gst_item = QTableWidgetItem("N/A")
+                gst_item = QTableWidgetItem("-")
             items_table.setItem(row, 4, gst_item)
             
-            # Total amount for this item
+            # Total amount for this item - only add GST if checkbox is checked
             item_total = item_price + gst_amount if include_gst else item_price
             total_amount += item_total
             amount_item = QTableWidgetItem(f"₹{item_total:.2f}")
@@ -1091,14 +1244,28 @@ class InvoiceScreen(QWidget):
         self.invoice_preview_layout.addWidget(items_table)
         
         # Totals section
-        totals_layout = QVBoxLayout()
+        # Create a frame for totals with border and styling
+        totals_frame = QFrame()
+        totals_frame.setStyleSheet("""
+            QFrame {
+                border: 1px solid #2c3e50;
+                border-radius: 4px;
+                background-color: #f8f9fa;
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+        """)
+        totals_layout = QVBoxLayout(totals_frame)
+        totals_layout.setContentsMargins(15, 10, 15, 10)
         
         # Subtotal
         subtotal_layout = QHBoxLayout()
         subtotal_layout.addStretch()
         subtotal_label = QLabel("Subtotal:")
-        subtotal_label.setStyleSheet("font-weight: bold;")
+        subtotal_label.setStyleSheet("font-weight: bold; font-size: 14px;")
         subtotal_value = QLabel(f"₹{total_amount - total_tax:.2f}")
+        subtotal_value.setStyleSheet("font-size: 14px; min-width: 80px; text-align: right;")
+        subtotal_value.setAlignment(Qt.AlignRight)
         subtotal_layout.addWidget(subtotal_label)
         subtotal_layout.addWidget(subtotal_value)
         totals_layout.addLayout(subtotal_layout)
@@ -1107,44 +1274,78 @@ class InvoiceScreen(QWidget):
         if include_gst:
             gst_layout = QHBoxLayout()
             gst_layout.addStretch()
-            gst_label = QLabel("GST (18%):")
-            gst_label.setStyleSheet("font-weight: bold;")
+            gst_label = QLabel("GST (12%):")
+            gst_label.setStyleSheet("font-weight: bold; font-size: 14px;")
             gst_value = QLabel(f"₹{total_tax:.2f}")
+            gst_value.setStyleSheet("font-size: 14px; min-width: 80px; text-align: right;")
+            gst_value.setAlignment(Qt.AlignRight)
             gst_layout.addWidget(gst_label)
             gst_layout.addWidget(gst_value)
             totals_layout.addLayout(gst_layout)
+        
+        # Add a separator line before total
+        separator_line = QFrame()
+        separator_line.setFrameShape(QFrame.HLine)
+        separator_line.setFrameShadow(QFrame.Sunken)
+        separator_line.setStyleSheet("background-color: #2c3e50; margin: 5px 0;")
+        totals_layout.addWidget(separator_line)
         
         # Total
         total_layout = QHBoxLayout()
         total_layout.addStretch()
         total_label = QLabel("Total:")
-        total_label.setStyleSheet("font-weight: bold; font-size: 16px;")
+        total_label.setStyleSheet("font-weight: bold; font-size: 16px; color: #2c3e50;")
         total_value = QLabel(f"₹{total_amount:.2f}")
-        total_value.setStyleSheet("font-weight: bold; font-size: 16px;")
+        total_value.setStyleSheet("font-weight: bold; font-size: 16px; color: #2c3e50; min-width: 80px; text-align: right;")
+        total_value.setAlignment(Qt.AlignRight)
         total_layout.addWidget(total_label)
         total_layout.addWidget(total_value)
         totals_layout.addLayout(total_layout)
         
-        self.invoice_preview_layout.addLayout(totals_layout)
+        self.invoice_preview_layout.addWidget(totals_frame)
         
-        # Terms and conditions
+        # Terms and conditions with enhanced styling
+        terms_frame = QFrame()
+        terms_frame.setStyleSheet("""
+            QFrame {
+                border: 1px solid #2c3e50;
+                border-radius: 4px;
+                background-color: #f8f9fa;
+                margin-top: 15px;
+                margin-bottom: 15px;
+            }
+        """)
+        terms_layout = QVBoxLayout(terms_frame)
+        
         terms_label = QLabel("Terms and Conditions:")
-        terms_label.setStyleSheet("font-weight: bold; margin-top: 20px;")
-        self.invoice_preview_layout.addWidget(terms_label)
+        terms_label.setStyleSheet("font-weight: bold; font-size: 14px; color: #2c3e50; margin-bottom: 5px;")
+        terms_layout.addWidget(terms_label)
         
-        terms_text = QLabel("1. All repair work carries a 30-day warranty.\n2. Parts replaced are not returnable.\n3. Payment is due upon completion of repair.")
+        terms_text = QLabel("1. All repair work carries a 30-day warranty.\n2. Parts replaced are not returnable.\n3. Payment is due upon completion of repair.\n4. Goods once sold will not be taken back.\n5. Subject to local jurisdiction.")
         terms_text.setWordWrap(True)
-        self.invoice_preview_layout.addWidget(terms_text)
+        terms_text.setStyleSheet("font-size: 12px; line-height: 1.4;")
+        terms_layout.addWidget(terms_text)
         
-        # Signature section
-        signature_layout = QHBoxLayout()
+        self.invoice_preview_layout.addWidget(terms_frame)
+        
+        # Signature section with enhanced styling
+        signature_frame = QFrame()
+        signature_frame.setStyleSheet("""
+            QFrame {
+                margin-top: 20px;
+                margin-bottom: 10px;
+            }
+        """)
+        signature_layout = QHBoxLayout(signature_frame)
         
         customer_sign = QVBoxLayout()
         customer_sign_label = QLabel("Customer Signature")
         customer_sign_label.setAlignment(Qt.AlignCenter)
+        customer_sign_label.setStyleSheet("font-weight: bold; color: #2c3e50;")
         customer_sign_line = QFrame()
         customer_sign_line.setFrameShape(QFrame.HLine)
         customer_sign_line.setFrameShadow(QFrame.Sunken)
+        customer_sign_line.setStyleSheet("background-color: #2c3e50; margin-bottom: 5px;")
         customer_sign.addStretch()
         customer_sign.addWidget(customer_sign_line)
         customer_sign.addWidget(customer_sign_label)
@@ -1152,9 +1353,11 @@ class InvoiceScreen(QWidget):
         shop_sign = QVBoxLayout()
         shop_sign_label = QLabel("Authorized Signature")
         shop_sign_label.setAlignment(Qt.AlignCenter)
+        shop_sign_label.setStyleSheet("font-weight: bold; color: #2c3e50;")
         shop_sign_line = QFrame()
         shop_sign_line.setFrameShape(QFrame.HLine)
         shop_sign_line.setFrameShadow(QFrame.Sunken)
+        shop_sign_line.setStyleSheet("background-color: #2c3e50; margin-bottom: 5px;")
         shop_sign.addStretch()
         shop_sign.addWidget(shop_sign_line)
         shop_sign.addWidget(shop_sign_label)
@@ -1163,7 +1366,7 @@ class InvoiceScreen(QWidget):
         signature_layout.addSpacing(50)
         signature_layout.addLayout(shop_sign)
         
-        self.invoice_preview_layout.addLayout(signature_layout)
+        self.invoice_preview_layout.addWidget(signature_frame)
     
     def generate_invoice_number(self):
         # Get the current date
@@ -1273,6 +1476,27 @@ class InvoiceScreen(QWidget):
     def update_invoice_date(self):
         self.invoice_date = self.invoice_date_edit.date().toString('yyyy-MM-dd')
         self.update_invoice_preview()
+    
+    def update_gst_and_bill_text(self):
+        subtotal = sum(item['total'] for item in self.invoice_items)
+        include_gst = self.include_gst_checkbox.isChecked()
+        gst_rate = 12.0
+        gst_amount = subtotal * (gst_rate / 100) if include_gst else 0
+        total = subtotal + gst_amount
+        rounded_total = round(total)
+        
+        if include_gst:
+            self.total_gst_text.setText(f"Total GST: {self.number_to_words(gst_amount)}")
+        else:
+            self.total_gst_text.setText("Total GST: Not Applicable")
+            
+        self.bill_amount_text.setText(f"Bill Amount: {self.number_to_words(rounded_total)}")
+    
+    def update_gst_note(self):
+        if self.include_gst_checkbox.isChecked():
+            self.gst_note_label.setText("GST is included in the invoice amount.")
+        else:
+            self.gst_note_label.setText("GST is not applicable for this invoice.")
     
     def update_invoice_preview(self):
         # Check if invoice_preview_layout exists
@@ -1742,22 +1966,54 @@ class InvoiceScreen(QWidget):
         # Remove the reference to items_table that was causing the error
         
         # Add GST breakdown and bill amount in words
-        gst_breakdown_layout = QHBoxLayout()
+        gst_frame = QFrame()
+        gst_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                border-left: 4px solid #2c3e50;
+                padding: 10px;
+                margin: 10px 0;
+            }
+        """)
         
-        # Total GST text
-        total_gst_layout = QVBoxLayout()
-        total_gst_text = QLabel("Total GST: One thousand six hundred sixty and eight.")
-        total_gst_text.setStyleSheet("font-size: 12px; font-weight: bold;")
-        bill_amount_text = QLabel("Bill Amount: Fifteen thousand five hundred.")
-        bill_amount_text.setStyleSheet("font-size: 12px; font-weight: bold;")
+        gst_breakdown_layout = QVBoxLayout(gst_frame)
         
-        total_gst_layout.addWidget(total_gst_text)
-        total_gst_layout.addWidget(bill_amount_text)
+        # GST Summary
+        gst_summary_label = QLabel("GST Summary: CGST (6%) + SGST (6%) = 12%")
+        gst_summary_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #2c3e50;")
+        gst_breakdown_layout.addWidget(gst_summary_label)
         
+        # Total GST text - will be updated when invoice is updated
+        total_gst_layout = QHBoxLayout()
+        self.total_gst_text = QLabel()
+        self.total_gst_text.setStyleSheet("font-size: 12px; font-weight: bold;")
+        total_gst_layout.addWidget(self.total_gst_text)
+        total_gst_layout.addStretch()
         gst_breakdown_layout.addLayout(total_gst_layout)
-        gst_breakdown_layout.addStretch()
         
-        self.invoice_preview_layout.addLayout(gst_breakdown_layout)
+        # Bill amount text - will be updated when invoice is updated
+        bill_amount_layout = QHBoxLayout()
+        self.bill_amount_text = QLabel()
+        self.bill_amount_text.setStyleSheet("font-size: 12px; font-weight: bold;")
+        bill_amount_layout.addWidget(self.bill_amount_text)
+        bill_amount_layout.addStretch()
+        gst_breakdown_layout.addLayout(bill_amount_layout)
+        
+        # GST note
+        self.gst_note_label = QLabel()
+        self.gst_note_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #2c3e50; margin-top: 5px;")
+        gst_breakdown_layout.addWidget(self.gst_note_label)
+        
+        # Update GST and bill amount text based on current values
+        self.update_gst_and_bill_text()
+        
+        # Update the GST note based on checkbox state
+        self.update_gst_note()
+        
+        self.invoice_preview_layout.addWidget(gst_frame)
+        
+        self.invoice_preview_layout.addWidget(gst_frame)
         
         # Terms and conditions
         terms_layout = QVBoxLayout()
@@ -1931,6 +2187,8 @@ class InvoiceScreen(QWidget):
         subtotal = sum(item['total'] for item in self.invoice_items)
         include_gst = self.include_gst_checkbox.isChecked()
         gst_rate = 12.0  # 12% GST as shown in the invoice image
+        
+        # Only calculate GST if the checkbox is checked
         gst_amount = subtotal * (gst_rate / 100) if include_gst else 0
         total = subtotal + gst_amount
         
@@ -1965,40 +2223,48 @@ class InvoiceScreen(QWidget):
             <title>Invoice {self.invoice_number}</title>
             <style>
                 @page {{ size: A4; margin: 0; }}
-                body {{ font-family: Arial, sans-serif; margin: 0; padding: 30px; color: #000; }}
-                .invoice-header {{ text-align: center; margin-bottom: 20px; }}
-                .shop-name {{ font-size: 42px; font-weight: bold; margin-bottom: 10px; }}
-                .shop-address {{ font-size: 16px; margin-bottom: 5px; }}
-                .shop-location {{ font-size: 16px; margin-bottom: 15px; }}
-                .separator {{ border-top: 3px solid #000; margin: 20px 0; }}
-                .tax-invoice-header {{ display: flex; justify-content: space-between; margin-bottom: 20px; }}
+                body {{ font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 30px; color: #333; background-color: #fff; line-height: 1.5; }}
+                .invoice-header {{ text-align: center; margin-bottom: 20px; padding: 20px; background-color: #2c3e50; color: white; border-radius: 8px; }}
+                .shop-name {{ font-size: 42px; font-weight: bold; margin-bottom: 10px; color: white; text-transform: uppercase; }}
+                .shop-address {{ font-size: 16px; margin-bottom: 5px; color: white; }}
+                .shop-location {{ font-size: 16px; margin-bottom: 15px; color: white; }}
+                .separator {{ border-top: 2px solid #2c3e50; margin: 20px 0; }}
+                .tax-invoice-header {{ display: flex; justify-content: space-between; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #2c3e50; }}
                 .memo-section {{ width: 40%; }}
-                .memo-label {{ font-size: 16px; font-weight: bold; }}
-                .memo-value {{ font-size: 16px; margin-left: 5px; }}
-                .invoice-info {{ width: 30%; text-align: center; }}
-                .tax-invoice-title {{ font-size: 24px; font-weight: bold; margin-bottom: 10px; }}
-                .original-label {{ font-size: 16px; margin-bottom: 10px; }}
-                .invoice-number {{ font-size: 16px; font-weight: bold; margin-bottom: 10px; }}
-                .invoice-date {{ font-size: 16px; margin-bottom: 10px; }}
-                table {{ width: 100%; border-collapse: collapse; margin: 25px 0; }}
-                th, td {{ border: 1px solid black; padding: 10px; font-size: 16px; }}
-                th {{ font-weight: bold; text-align: center; background-color: #e0e0e0; }}
+                .memo-label {{ font-size: 16px; font-weight: bold; color: #2c3e50; }}
+                .memo-value {{ font-size: 16px; margin-left: 5px; color: #555; }}
+                .invoice-info {{ width: 30%; text-align: center; padding: 15px; background-color: #2c3e50; border-radius: 8px; color: white; }}
+                .tax-invoice-title {{ font-size: 26px; font-weight: bold; margin-bottom: 10px; color: white; text-transform: uppercase; }}
+                .original-label {{ font-size: 16px; margin-bottom: 10px; color: #ecf0f1; }}
+                .invoice-number {{ font-size: 16px; font-weight: bold; margin-bottom: 10px; color: white; }}
+                .invoice-date {{ font-size: 16px; margin-bottom: 10px; color: white; }}
+                table {{ width: 100%; border-collapse: collapse; margin: 25px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+                th, td {{ border: 1px solid #bdc3c7; padding: 12px; font-size: 15px; }}
+                th {{ font-weight: bold; text-align: center; background-color: #2c3e50; color: white; text-transform: uppercase; }}
+                tr:nth-child(even) {{ background-color: #f8f9fa; }}
+                tr:hover {{ background-color: #e8f4fc; }}
                 .text-center {{ text-align: center; }}
                 .text-right {{ text-align: right; }}
-                .totals-section {{ display: flex; justify-content: space-between; margin: 25px 0; }}
-                .gstn-info {{ font-size: 16px; font-weight: bold; }}
-                .round-off {{ display: flex; justify-content: flex-end; }}
-                .round-off-label {{ font-size: 16px; width: 150px; }}
-                .round-off-value {{ font-size: 16px; width: 100px; text-align: right; }}
-                .bank-info {{ font-size: 16px; margin: 15px 0; }}
-                .grand-total {{ display: flex; justify-content: flex-end; font-weight: bold; }}
+                tfoot {{ background-color: #f8f9fa; font-weight: bold; }}
+                tfoot td {{ border-top: 2px solid #2c3e50; }}
+                .totals-section {{ display: flex; justify-content: space-between; margin: 25px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #2c3e50; }}
+                .gstn-info {{ font-size: 16px; font-weight: bold; color: #2c3e50; }}
+                .round-off {{ display: flex; justify-content: flex-end; margin-bottom: 5px; }}
+                .round-off-label {{ font-size: 16px; width: 150px; color: #555; }}
+                .round-off-value {{ font-size: 16px; width: 100px; text-align: right; color: #555; }}
+                .bank-info {{ font-size: 16px; margin: 15px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px dashed #bdc3c7; color: #555; }}
+                .grand-total {{ display: flex; justify-content: flex-end; font-weight: bold; padding: 10px; background-color: #2c3e50; color: white; border-radius: 5px; }}
                 .grand-total-label {{ font-size: 20px; width: 150px; }}
                 .grand-total-value {{ font-size: 20px; width: 100px; text-align: right; }}
-                .gst-breakdown {{ font-size: 18px; font-weight: bold; margin: 20px 0; }}
-                .terms-section {{ margin: 30px 0; }}
-                .terms-header {{ font-size: 18px; font-weight: bold; margin-bottom: 10px; }}
-                .terms-content {{ font-size: 16px; margin-bottom: 8px; }}
-                .signature {{ text-align: right; margin-top: 50px; font-size: 18px; }}
+                .gst-breakdown {{ font-size: 18px; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #2c3e50; }}
+                .gst-note {{ font-weight: bold; color: #2c3e50; margin-top: 8px; }}
+                .terms-section {{ margin: 30px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #bdc3c7; }}
+                .terms-header {{ font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #2c3e50; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; }}
+                .terms-content {{ font-size: 16px; margin-bottom: 8px; color: #555; }}
+                .signature {{ text-align: right; margin-top: 50px; font-size: 18px; color: #2c3e50; padding-top: 10px; border-top: 1px solid #bdc3c7; }}
+                .device-info {{ margin: 15px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #2c3e50; }}
+                .section-title {{ font-weight: bold; font-size: 18px; margin-bottom: 8px; color: #2c3e50; }}
+                .customer-details {{ margin-bottom: 5px; font-size: 16px; }}
             </style>
         </head>
         <body>
@@ -2066,14 +2332,19 @@ class InvoiceScreen(QWidget):
         
         # Add items
         for index, item in enumerate(self.invoice_items, 1):
-            # Calculate GST for each item
+            # Calculate GST for each item only if GST is included
             taxable_amount = item['total']
-            gst_percent = 12.0 if self.include_gst_checkbox.isChecked() else 0
-            tax_amount = taxable_amount * (gst_percent / 100)
-            net_amount = taxable_amount + tax_amount
+            include_gst = self.include_gst_checkbox.isChecked()
+            gst_percent = 12.0 if include_gst else 0
+            tax_amount = taxable_amount * (gst_percent / 100) if include_gst else 0
+            net_amount = taxable_amount + tax_amount if include_gst else taxable_amount
             
             # Get frame number if available
             frame_number = item.get('frame_number', '-')
+            
+            # Format GST percent and tax amount for display
+            gst_percent_display = f"{gst_percent:.1f}" if include_gst else "-"
+            tax_amount_display = f"{tax_amount:.2f}" if include_gst else "-"
             
             html += f"""
                     <tr>
@@ -2083,11 +2354,14 @@ class InvoiceScreen(QWidget):
                         <td class="text-center">{item['quantity']}</td>
                         <td class="text-right">{item['price']:.2f}</td>
                         <td class="text-right">{taxable_amount:.2f}</td>
-                        <td class="text-center">{gst_percent:.1f}</td>
-                        <td class="text-right">{tax_amount:.2f}</td>
+                        <td class="text-center">{gst_percent_display}</td>
+                        <td class="text-right">{tax_amount_display}</td>
                         <td class="text-right">{net_amount:.2f}</td>
                     </tr>
             """
+        
+        # Format GST amount display based on include_gst
+        gst_amount_display = f"{gst_amount:.2f}" if include_gst else "-"
         
         html += f"""
                 </tbody>
@@ -2098,7 +2372,7 @@ class InvoiceScreen(QWidget):
                         <td></td>
                         <td class="text-right">{subtotal:.2f}</td>
                         <td></td>
-                        <td class="text-right">{gst_amount:.2f}</td>
+                        <td class="text-right">{gst_amount_display}</td>
                         <td class="text-right">{total:.2f}</td>
                     </tr>
                 </tfoot>
@@ -2121,7 +2395,9 @@ class InvoiceScreen(QWidget):
             </div>
             
             <div class="gst-breakdown">
-                Amt (Rupees {self.number_to_words(rounded_total)} Only)
+                <div>Amt (Rupees {self.number_to_words(rounded_total)} Only)</div>
+                <div>GST Summary: CGST (6%) + SGST (6%) = 12%</div>
+                {f'<div class="gst-note">GST is included in the invoice amount.</div>' if include_gst else '<div class="gst-note">GST is not applicable for this invoice.</div>'}
             </div>
         """
         
@@ -2451,6 +2727,27 @@ class RepairInvoiceScreen(QWidget):
         self.invoice_date = self.invoice_date_edit.date().toString('yyyy-MM-dd')
         self.update_invoice_preview()
         
+    def update_gst_and_bill_text(self):
+        subtotal = sum(item['total'] for item in self.invoice_items)
+        include_gst = self.include_gst_checkbox.isChecked()
+        gst_rate = 12.0
+        gst_amount = subtotal * (gst_rate / 100) if include_gst else 0
+        total = subtotal + gst_amount
+        rounded_total = round(total)
+        
+        if include_gst:
+            self.total_gst_text.setText(f"Total GST: {self.number_to_words(gst_amount)}")
+        else:
+            self.total_gst_text.setText("Total GST: Not Applicable")
+            
+        self.bill_amount_text.setText(f"Bill Amount: {self.number_to_words(rounded_total)}")
+    
+    def update_gst_note(self):
+        if self.include_gst_checkbox.isChecked():
+            self.gst_note_label.setText("GST is included in the invoice amount.")
+        else:
+            self.gst_note_label.setText("GST is not applicable for this invoice.")
+    
     def update_invoice_preview(self):
         # Check if invoice_preview_layout exists
         if not hasattr(self, 'invoice_preview_layout'):
@@ -2464,41 +2761,53 @@ class RepairInvoiceScreen(QWidget):
             if widget is not None:
                 widget.deleteLater()
         
-        # Shop information - Header
+        # Shop information - Header with modern styling
         shop_info_layout = QVBoxLayout()
+        
+        # Create a header frame with background
+        header_frame = QFrame()
+        header_frame.setStyleSheet("background-color: #3498db; border-radius: 8px; padding: 15px; margin-bottom: 10px;")
+        header_layout = QVBoxLayout(header_frame)
         
         # Shop name in large font
         shop_name = QLabel("K BICYCLE")
-        shop_name.setStyleSheet("font-size: 28px; font-weight: bold; color: #000000; text-align: center;")
+        shop_name.setStyleSheet("font-size: 32px; font-weight: bold; color: white; text-align: center;")
         shop_name.setAlignment(Qt.AlignCenter)
-        shop_info_layout.addWidget(shop_name)
+        header_layout.addWidget(shop_name)
         
         # Shop address
-        shop_address = QLabel("123 Main Street, City, State, ZIP")
-        shop_address.setStyleSheet("font-size: 12px; color: #333333; text-align: center;")
+        shop_address = QLabel("SHOP NO 1/2, TRUST MARBLE COMPLEX, MADHAPAR (370020)")
+        shop_address.setStyleSheet("font-size: 14px; color: white; text-align: center;")
         shop_address.setAlignment(Qt.AlignCenter)
-        shop_info_layout.addWidget(shop_address)
+        header_layout.addWidget(shop_address)
         
         # Shop contact
-        shop_contact = QLabel("Phone: (123) 456-7890 | Email: info@kbicycle.com")
-        shop_contact.setStyleSheet("font-size: 12px; color: #333333; text-align: center;")
+        shop_contact = QLabel("Phone: (123) 456-7890 | Email: info@kbicycle.com | GST: 12ABCDE1234F1Z5")
+        shop_contact.setStyleSheet("font-size: 14px; color: white; text-align: center;")
         shop_contact.setAlignment(Qt.AlignCenter)
-        shop_info_layout.addWidget(shop_contact)
+        header_layout.addWidget(shop_contact)
         
+        shop_info_layout.addWidget(header_frame)
         self.invoice_preview_layout.addLayout(shop_info_layout)
         
         # Add a separator
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         separator.setFrameShadow(QFrame.Sunken)
-        separator.setStyleSheet("background-color: #cccccc;")
+        separator.setStyleSheet("background-color: #3498db; height: 2px;")
         self.invoice_preview_layout.addWidget(separator)
         
-        # Tax Invoice Header
-        tax_invoice_label = QLabel("REPAIR INVOICE")
-        tax_invoice_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #000000; text-align: center;")
+        # Tax Invoice Header with modern styling
+        tax_invoice_frame = QFrame()
+        tax_invoice_frame.setStyleSheet("background-color: #2c3e50; border-radius: 8px; padding: 12px; margin: 10px 0;")
+        tax_invoice_layout = QVBoxLayout(tax_invoice_frame)
+        
+        tax_invoice_label = QLabel("TAX INVOICE")
+        tax_invoice_label.setStyleSheet("font-size: 22px; font-weight: bold; color: white; text-align: center;")
         tax_invoice_label.setAlignment(Qt.AlignCenter)
-        self.invoice_preview_layout.addWidget(tax_invoice_label)
+        tax_invoice_layout.addWidget(tax_invoice_label)
+        
+        self.invoice_preview_layout.addWidget(tax_invoice_frame)
         
         # Memo details (Invoice number, date, etc.)
         memo_details = QHBoxLayout()
@@ -2594,7 +2903,7 @@ class RepairInvoiceScreen(QWidget):
         separator2.setStyleSheet("background-color: #cccccc;")
         self.invoice_preview_layout.addWidget(separator2)
         
-        # Items table
+        # Items table with enhanced styling
         items_table = QTableWidget()
         items_table.setColumnCount(6)
         items_table.setHorizontalHeaderLabels(["Item", "Description", "Qty", "Rate", "GST", "Amount"])
@@ -2602,15 +2911,25 @@ class RepairInvoiceScreen(QWidget):
         items_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         items_table.setStyleSheet("""
             QTableWidget {
-                border: 1px solid #e0e0e0;
-                gridline-color: #e0e0e0;
+                border: 1px solid #2c3e50;
+                gridline-color: #bdc3c7;
                 background-color: white;
+                border-radius: 4px;
             }
             QHeaderView::section {
-                background-color: #f0f0f0;
-                padding: 5px;
-                border: 1px solid #e0e0e0;
+                background-color: #2c3e50;
+                color: white;
+                padding: 8px;
+                border: none;
                 font-weight: bold;
+                font-size: 13px;
+            }
+            QTableWidget::item {
+                padding: 5px;
+                border-bottom: 1px solid #ecf0f1;
+            }
+            QTableWidget::item:selected {
+                background-color: #e3f2fd;
             }
         """)
         
@@ -2642,15 +2961,15 @@ class RepairInvoiceScreen(QWidget):
             item_price = item['price'] * item['quantity']
             gst_amount = 0
             if include_gst:
-                # GST is 18% of the price
-                gst_amount = item_price * 0.18
+                # GST is 12% of the price (consistent with InvoiceScreen)
+                gst_amount = item_price * 0.12
                 total_tax += gst_amount
                 gst_item = QTableWidgetItem(f"₹{gst_amount:.2f}")
             else:
-                gst_item = QTableWidgetItem("N/A")
+                gst_item = QTableWidgetItem("-")
             items_table.setItem(row, 4, gst_item)
             
-            # Total amount for this item
+            # Total amount for this item - only add GST if checkbox is checked
             item_total = item_price + gst_amount if include_gst else item_price
             total_amount += item_total
             amount_item = QTableWidgetItem(f"₹{item_total:.2f}")
@@ -2659,14 +2978,28 @@ class RepairInvoiceScreen(QWidget):
         self.invoice_preview_layout.addWidget(items_table)
         
         # Totals section
-        totals_layout = QVBoxLayout()
+        # Create a frame for totals with border and styling
+        totals_frame = QFrame()
+        totals_frame.setStyleSheet("""
+            QFrame {
+                border: 1px solid #2c3e50;
+                border-radius: 4px;
+                background-color: #f8f9fa;
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+        """)
+        totals_layout = QVBoxLayout(totals_frame)
+        totals_layout.setContentsMargins(15, 10, 15, 10)
         
         # Subtotal
         subtotal_layout = QHBoxLayout()
         subtotal_layout.addStretch()
         subtotal_label = QLabel("Subtotal:")
-        subtotal_label.setStyleSheet("font-weight: bold;")
+        subtotal_label.setStyleSheet("font-weight: bold; font-size: 14px;")
         subtotal_value = QLabel(f"₹{total_amount - total_tax:.2f}")
+        subtotal_value.setStyleSheet("font-size: 14px; min-width: 80px; text-align: right;")
+        subtotal_value.setAlignment(Qt.AlignRight)
         subtotal_layout.addWidget(subtotal_label)
         subtotal_layout.addWidget(subtotal_value)
         totals_layout.addLayout(subtotal_layout)
@@ -2675,44 +3008,78 @@ class RepairInvoiceScreen(QWidget):
         if include_gst:
             gst_layout = QHBoxLayout()
             gst_layout.addStretch()
-            gst_label = QLabel("GST (18%):")
-            gst_label.setStyleSheet("font-weight: bold;")
+            gst_label = QLabel("GST (12%):")
+            gst_label.setStyleSheet("font-weight: bold; font-size: 14px;")
             gst_value = QLabel(f"₹{total_tax:.2f}")
+            gst_value.setStyleSheet("font-size: 14px; min-width: 80px; text-align: right;")
+            gst_value.setAlignment(Qt.AlignRight)
             gst_layout.addWidget(gst_label)
             gst_layout.addWidget(gst_value)
             totals_layout.addLayout(gst_layout)
+        
+        # Add a separator line before total
+        separator_line = QFrame()
+        separator_line.setFrameShape(QFrame.HLine)
+        separator_line.setFrameShadow(QFrame.Sunken)
+        separator_line.setStyleSheet("background-color: #2c3e50; margin: 5px 0;")
+        totals_layout.addWidget(separator_line)
         
         # Total
         total_layout = QHBoxLayout()
         total_layout.addStretch()
         total_label = QLabel("Total:")
-        total_label.setStyleSheet("font-weight: bold; font-size: 16px;")
+        total_label.setStyleSheet("font-weight: bold; font-size: 16px; color: #2c3e50;")
         total_value = QLabel(f"₹{total_amount:.2f}")
-        total_value.setStyleSheet("font-weight: bold; font-size: 16px;")
+        total_value.setStyleSheet("font-weight: bold; font-size: 16px; color: #2c3e50; min-width: 80px; text-align: right;")
+        total_value.setAlignment(Qt.AlignRight)
         total_layout.addWidget(total_label)
         total_layout.addWidget(total_value)
         totals_layout.addLayout(total_layout)
         
-        self.invoice_preview_layout.addLayout(totals_layout)
+        self.invoice_preview_layout.addWidget(totals_frame)
         
-        # Terms and conditions
+        # Terms and conditions with enhanced styling
+        terms_frame = QFrame()
+        terms_frame.setStyleSheet("""
+            QFrame {
+                border: 1px solid #2c3e50;
+                border-radius: 4px;
+                background-color: #f8f9fa;
+                margin-top: 15px;
+                margin-bottom: 15px;
+            }
+        """)
+        terms_layout = QVBoxLayout(terms_frame)
+        
         terms_label = QLabel("Terms and Conditions:")
-        terms_label.setStyleSheet("font-weight: bold; margin-top: 20px;")
-        self.invoice_preview_layout.addWidget(terms_label)
+        terms_label.setStyleSheet("font-weight: bold; font-size: 14px; color: #2c3e50; margin-bottom: 5px;")
+        terms_layout.addWidget(terms_label)
         
-        terms_text = QLabel("1. All repair work carries a 30-day warranty.\n2. Parts replaced are not returnable.\n3. Payment is due upon completion of repair.")
+        terms_text = QLabel("1. All repair work carries a 30-day warranty.\n2. Parts replaced are not returnable.\n3. Payment is due upon completion of repair.\n4. Goods once sold will not be taken back.\n5. Subject to local jurisdiction.")
         terms_text.setWordWrap(True)
-        self.invoice_preview_layout.addWidget(terms_text)
+        terms_text.setStyleSheet("font-size: 12px; line-height: 1.4;")
+        terms_layout.addWidget(terms_text)
         
-        # Signature section
-        signature_layout = QHBoxLayout()
+        self.invoice_preview_layout.addWidget(terms_frame)
+        
+        # Signature section with enhanced styling
+        signature_frame = QFrame()
+        signature_frame.setStyleSheet("""
+            QFrame {
+                margin-top: 20px;
+                margin-bottom: 10px;
+            }
+        """)
+        signature_layout = QHBoxLayout(signature_frame)
         
         customer_sign = QVBoxLayout()
         customer_sign_label = QLabel("Customer Signature")
         customer_sign_label.setAlignment(Qt.AlignCenter)
+        customer_sign_label.setStyleSheet("font-weight: bold; color: #2c3e50;")
         customer_sign_line = QFrame()
         customer_sign_line.setFrameShape(QFrame.HLine)
         customer_sign_line.setFrameShadow(QFrame.Sunken)
+        customer_sign_line.setStyleSheet("background-color: #2c3e50; margin-bottom: 5px;")
         customer_sign.addStretch()
         customer_sign.addWidget(customer_sign_line)
         customer_sign.addWidget(customer_sign_label)
@@ -2720,9 +3087,11 @@ class RepairInvoiceScreen(QWidget):
         shop_sign = QVBoxLayout()
         shop_sign_label = QLabel("Authorized Signature")
         shop_sign_label.setAlignment(Qt.AlignCenter)
+        shop_sign_label.setStyleSheet("font-weight: bold; color: #2c3e50;")
         shop_sign_line = QFrame()
         shop_sign_line.setFrameShape(QFrame.HLine)
         shop_sign_line.setFrameShadow(QFrame.Sunken)
+        shop_sign_line.setStyleSheet("background-color: #2c3e50; margin-bottom: 5px;")
         shop_sign.addStretch()
         shop_sign.addWidget(shop_sign_line)
         shop_sign.addWidget(shop_sign_label)
@@ -2731,7 +3100,7 @@ class RepairInvoiceScreen(QWidget):
         signature_layout.addSpacing(50)
         signature_layout.addLayout(shop_sign)
         
-        self.invoice_preview_layout.addLayout(signature_layout)
+        self.invoice_preview_layout.addWidget(signature_frame)
             
     def preview_invoice(self):
         # Create a print preview dialog
@@ -2934,9 +3303,13 @@ class RepairInvoiceScreen(QWidget):
         options_layout = QHBoxLayout(options_frame)
         
         # GST option
-        self.include_gst_checkbox = QCheckBox("Include GST (18%)")
+        self.include_gst_checkbox = QCheckBox("Include GST in Invoice")
         self.include_gst_checkbox.setChecked(True)  # Default to include GST
         self.include_gst_checkbox.stateChanged.connect(self.update_invoice_preview)
+        self.include_gst_checkbox.stateChanged.connect(self.update_gst_and_bill_text)
+        self.include_gst_checkbox.stateChanged.connect(self.update_gst_note)
+        self.include_gst_checkbox.setStyleSheet("font-weight: bold; color: #3498db;")
+        self.include_gst_checkbox.setToolTip("Check to include GST calculation in the invoice, uncheck to exclude GST")
         
         # Invoice date
         date_layout = QHBoxLayout()
